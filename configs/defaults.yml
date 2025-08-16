@@ -1,0 +1,104 @@
+# Default PHPier Configuration
+docker:
+  compose_file: "docker-compose.yml"
+  project_name: "phpier"
+  network: "phpier"
+
+php:
+  version: "8.3"
+  extensions:
+    - bcmath
+    - bz2
+    - calendar
+    - ctype
+    - curl
+    - dba
+    - dom
+    - exif
+    - ffi
+    - fileinfo
+    - filter
+    - ftp
+    - gd
+    - gmp
+    - iconv
+    - igbinary
+    - imagick
+    - imap
+    - intl
+    - ldap
+    - lz4
+    - mbstring
+    - mongodb
+    - mysqli
+    - opcache
+    - openssl
+    - pcntl
+    - pdo
+    - pdo_mysql
+    - pdo_pgsql
+    - pdo_sqlite
+    - pdo_sqlsrv
+    - pgsql
+    - phar
+    - posix
+    - readline
+    - redis
+    - session
+    - shmop
+    - simplexml
+    - soap
+    - sockets
+    - sodium
+    - sqlsrv
+    - sqlite3
+    - sysvmsg
+    - sysvsem
+    - sysvshm
+    - tokenizer
+    - xml
+    - xmlreader
+    - xmlwriter
+    - xsl
+    - zip
+    - zlib
+  settings:
+    memory_limit: "256M"
+    upload_max_filesize: "64M"
+    post_max_size: "64M"
+    max_execution_time: "300"
+
+services:
+  database:
+    type: "mysql"
+    version: "8.0"
+    database: "phpier"
+    username: "phpier"
+    password: "phpier"
+    port: 3306
+
+  cache:
+    redis:
+      enabled: true
+      port: 6379
+    memcached:
+      enabled: false
+      port: 11211
+
+  tools:
+    phpmyadmin: true
+    mailpit: true
+    pgadmin: false
+
+  webserver:
+    port: 80
+    ssl_port: 443
+    doc_root: "/var/www/html"
+    index_doc: "index.php"
+
+traefik:
+  enabled: true
+  domain: "localhost"
+  port: 80
+  ssl_port: 443
+  ssl: false

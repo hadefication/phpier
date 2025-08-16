@@ -1,0 +1,145 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+          
+    - name: Run tests
+      run: go test -v ./...
+      
+    - name: Extract version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+    - name: Build cross-platform binaries
+      run: |
+        # Set build variables
+        VERSION=${{ steps.version.outputs.VERSION }}
+        COMMIT=${{ github.sha }}
+        DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        LDFLAGS="-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}"
+        
+        # Create build directory
+        mkdir -p dist
+        
+        # Build for multiple platforms
+        platforms=("linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64" "windows/amd64")
+        
+        for platform in "${platforms[@]}"; do
+          IFS='/' read -r os arch <<< "$platform"
+          output_name="phpier-${os}-${arch}"
+          
+          if [ "$os" = "windows" ]; then
+            output_name="${output_name}.exe"
+          fi
+          
+          echo "Building ${output_name}..."
+          GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build \
+            -ldflags="$LDFLAGS" \
+            -o "dist/${output_name}" \
+            main.go
+        done
+        
+    - name: Generate checksums
+      run: |
+        cd dist
+        sha256sum phpier-* > checksums.txt
+        
+    - name: Create zip archives
+      run: |
+        cd dist
+        for binary in phpier-*; do
+          if [[ "$binary" != *.zip ]] && [[ "$binary" != *.txt ]]; then
+            zip "${binary}.zip" "$binary"
+          fi
+        done
+        
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        cat > release_notes.md << 'EOF'
+        ## What's Changed
+        
+        This release includes bug fixes, improvements, and new features for phpier.
+        
+        ## Installation
+        
+        ### Download Binary
+        Download the appropriate binary for your platform from the assets below:
+        
+        - **Linux (x64)**: `phpier-linux-amd64`
+        - **Linux (ARM64)**: `phpier-linux-arm64` 
+        - **macOS (Intel)**: `phpier-darwin-amd64`
+        - **macOS (Apple Silicon)**: `phpier-darwin-arm64`
+        - **Windows (x64)**: `phpier-windows-amd64.exe`
+        
+        ### Build from Source
+        ```bash
+        git clone https://github.com/your-org/phpier.git
+        cd phpier
+        go build -o phpier main.go
+        ```
+        
+        ### Verify Download
+        ```bash
+        # Download checksums.txt and verify
+        sha256sum -c checksums.txt
+        ```
+        
+        ## Usage
+        
+        ```bash
+        # Initialize PHP 8.3 environment
+        phpier init 8.3
+        
+        # Start services
+        phpier up -d
+        
+        # Access your app at http://your-project.localhost
+        ```
+        
+        ## Full Changelog
+        
+        **Full Changelog**: https://github.com/your-org/phpier/compare/v1.0.0...${{ steps.version.outputs.VERSION }}
+        EOF
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ steps.version.outputs.VERSION }}
+        body_path: release_notes.md
+        files: |
+          dist/phpier-*
+          dist/checksums.txt
+        draft: false
+        prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

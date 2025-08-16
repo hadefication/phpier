@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+    container_name: phpier_app
+    volumes:
+      - .:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/php.ini
+    networks:
+      - phpier
+    environment:
+      - PHP_VERSION=8.3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phpier.rule=Host(`phpier.localhost`)"
+      - "traefik.http.routers.phpier.entrypoints=web"
+      - "traefik.http.services.phpier.loadbalancer.server.port=80"
+  mysql:
+    image: mysql:8.0
+    container_name: phpier_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: phpier
+      MYSQL_DATABASE: phpier
+      MYSQL_USER: phpier
+      MYSQL_PASSWORD: phpier
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - phpier
+  redis:
+    image: redis:alpine
+    container_name: phpier_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - phpier
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpier_phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: phpier
+      PMA_PASSWORD: phpier
+    ports:
+      - "8080:80"
+    networks:
+      - phpier
+    depends_on:
+      - mysql
+  mailpit:
+    image: axllent/mailpit
+    container_name: phpier_mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - phpier
+  traefik:
+    image: traefik:v2.10
+    container_name: phpier_traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - phpier
+
+networks:
+  phpier:
+    driver: bridge
+
+volumes:
+  mysql_data:
