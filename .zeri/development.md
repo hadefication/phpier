@@ -206,14 +206,64 @@ docker run --rm test-php-build php -m | grep -E "(curl|gd|mysqli)"
 
 **Example Correct Testing:**
 ```bash
-# ✅ CORRECT: Test in temporary directory
-cd /tmp && mkdir test-phpier-project && cd test-phpier-project
-/path/to/phpier init 8.3
+# ✅ CORRECT: Test in temporary directory with phpier-test- prefix
+cd /tmp && mkdir phpier-test-start-command && cd phpier-test-start-command
+/path/to/phpier init 8.3 --project-name=phpier-test-start
 
 # ❌ WRONG: Never test in main codebase
 cd /Users/.../phpier-codebase
 ./phpier init 8.3  # DON'T DO THIS!
 ```
+
+**Test Naming Convention:**
+- **MANDATORY**: Use `phpier-test-<test_name>` prefix for all test projects
+- **Directory names**: `/tmp/phpier-test-<feature>` or `/private/tmp/phpier-test-<feature>`
+- **Project names**: `phpier-test-<feature>` when using `--project-name` flag
+- **Why**: Enables safe, targeted cleanup without affecting other Docker resources
+
+### ⚠️ CRITICAL: Docker Testing Cleanup Rules
+
+**MANDATORY CLEANUP PROCEDURES:**
+
+Docker testing generates significant artifacts that consume disk space. Follow these cleanup procedures:
+
+**Track All Generated Artifacts:**
+- Log all test project directories created during testing
+- Note Docker images built during feature implementation
+- Track volumes, networks, and containers created
+- Document temporary directories and their contents
+
+**Mandatory Cleanup After Specification Implementation:**
+```bash
+# Clean up phpier test directories (use specific prefix)
+rm -rf /tmp/phpier-test-*
+rm -rf /private/tmp/phpier-test-*
+
+# Clean up ONLY phpier test Docker resources (safer approach)
+# Containers with phpier-test- prefix
+docker ps -a --filter "name=phpier-test-" -q | xargs docker rm -f
+
+# Images with phpier-test- prefix
+docker images --filter "reference=*phpier-test-*" -q | xargs docker rmi -f
+
+# Volumes with phpier-test- prefix
+docker volume ls --filter "name=phpier-test-" -q | xargs docker volume rm -f
+
+# Networks with phpier-test- prefix (if any)
+docker network ls --filter "name=phpier-test-" -q | xargs docker network rm
+```
+
+**Why This Matters:**
+- Docker images can consume several GB per test
+- Multiple PHP version builds compound storage usage
+- Accumulated artifacts slow down development environment
+- Professional development practices require resource management
+
+**Implementation Requirements:**
+- **MANDATORY**: Clean up all Docker artifacts after completing each specification
+- **MANDATORY**: Log all test directories and Docker resources created during development
+- **MANDATORY**: Verify cleanup completion before marking specifications as complete
+- Include cleanup verification in specification TODO checklists
 
 ### PHP Environment Testing
 - Test across all supported PHP versions (5.6-8.4)
