@@ -12,6 +12,7 @@ import (
 type ProjectConfig struct {
 	Name string    `mapstructure:"name"`
 	PHP  string    `mapstructure:"php"`
+	Node string    `mapstructure:"node"`
 	App  AppConfig `mapstructure:"app"`
 }
 
@@ -150,6 +151,7 @@ func SaveProjectConfig(config *ProjectConfig) error {
 
 	projectViper.Set("name", config.Name)
 	projectViper.Set("php", config.PHP)
+	projectViper.Set("node", config.Node)
 	projectViper.Set("app", config.App)
 
 	if err := projectViper.SafeWriteConfig(); err != nil {

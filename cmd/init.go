@@ -108,6 +108,7 @@ func createProjectConfig() *config.ProjectConfig {
 	// Top-level configuration
 	cfg.Name = projectName
 	cfg.PHP = phpVersion
+	cfg.Node = "lts" // Default to latest LTS version
 
 	// App configuration
 	cfg.App.Volumes = []string{"../:/var/www/html"}

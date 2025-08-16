@@ -194,5 +194,24 @@ func createFuncMap() template.FuncMap {
 			domain := projectCfg.Name + "." + globalCfg.Traefik.Domain
 			return "Host(`" + domain + "`)"
 		},
+		"resolveNodeVersion": func(nodeVersion string) string {
+			switch nodeVersion {
+			case "lts":
+				// Let NodeSource repository handle LTS resolution
+				return "lts"
+			case "none", "":
+				return ""
+			default:
+				// For specific major versions, let NodeSource handle minor/patch resolution
+				// If it looks like a full version (x.y.z), use as-is
+				return nodeVersion
+			}
+		},
+		"shouldInstallNode": func(nodeVersion string) bool {
+			return nodeVersion != "none" && nodeVersion != ""
+		},
+		"split": func(s, sep string) []string {
+			return strings.Split(s, sep)
+		},
 	}
 }

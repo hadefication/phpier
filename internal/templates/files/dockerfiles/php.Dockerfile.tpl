@@ -69,23 +69,44 @@ COPY --from=composer:2.2 /usr/bin/composer /usr/bin/composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 {{- end }}
 
-# Install Node.js and npm via NVM (version compatible with PHP/OS)
-ENV NVM_DIR=/root/.nvm
-{{- if or (eq .Config.PHP.Version "5.6") (eq .Config.PHP.Version "7.0") (eq .Config.PHP.Version "7.1") (eq .Config.PHP.Version "7.2") (eq .Config.PHP.Version "7.3") }}
-# Use Node.js 16.x for older PHP versions (better compatibility)
-ENV NODE_VERSION=16.20.2
+# Install Node.js (if configured)
+{{- if shouldInstallNode .Project.Node }}
+{{- $nodeVersion := resolveNodeVersion .Project.Node }}
+{{- if eq $nodeVersion "lts" }}
+# Install Node.js LTS
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest
+{{- else if eq $nodeVersion "16" }}
+# Install Node.js 16.x (latest available)
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest
+{{- else if eq $nodeVersion "18" }}
+# Install Node.js 18.x (latest available)
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest
+{{- else if eq $nodeVersion "20" }}
+# Install Node.js 20.x (latest available)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest
+{{- else if eq $nodeVersion "22" }}
+# Install Node.js 22.x (latest available)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest
 {{- else }}
-# Use Node.js 18.x for modern PHP versions
-ENV NODE_VERSION=18.19.0
+# Install specific Node.js version: {{ $nodeVersion }}
+{{- $majorVersion := index (split $nodeVersion ".") 0 }}
+RUN curl -fsSL https://deb.nodesource.com/setup_{{ $majorVersion }}.x | bash - \
+    && apt-get install -y nodejs={{ $nodeVersion }}-1nodesource1 \
+    && npm install -g npm@latest
 {{- end }}
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash \
-    && . $NVM_DIR/nvm.sh \
-    && nvm install $NODE_VERSION \
-    && nvm use $NODE_VERSION \
-    && nvm alias default $NODE_VERSION
-
-# Add Node.js to PATH
-ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+{{- else }}
+# Node.js installation skipped (node: none)
+{{- end }}
 
 # Copy custom PHP configuration
 COPY .phpier/docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
