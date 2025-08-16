@@ -124,7 +124,7 @@ services:
   # Web interfaces for database and cache management
   {{if eq .Global.Services.Database.Type "mysql"}}
   adminer:
-    image: adminer:4.8.1
+    image: adminer:latest
     container_name: phpier-adminer
     restart: unless-stopped
     networks:
@@ -136,25 +136,8 @@ services:
       - "traefik.http.services.adminer.loadbalancer.server.port=8080"
   {{end}}
 
-  {{if serviceEnabled "redis" .Global}}
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: phpier-redis-commander
-    restart: unless-stopped
-    environment:
-      - REDIS_HOSTS=redis:phpier-redis:6379
-    networks:
-      - {{.Global.Network}}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.redis-commander.rule=Host(`phpier-redis.{{.Global.Traefik.Domain}}`)"
-      - "traefik.http.routers.redis-commander.entrypoints=web"
-      - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
-  {{end}}
-
 networks:
   {{.Global.Network}}:
-    name: {{.Global.Network}}
     driver: bridge
 
 volumes:

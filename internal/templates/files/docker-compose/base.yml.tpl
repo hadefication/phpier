@@ -1,7 +1,5 @@
 name: {{.Config.Docker.ProjectName}}
 
-version: '3.8'
-
 services:
   php:
     build:

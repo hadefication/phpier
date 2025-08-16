@@ -32,7 +32,6 @@ type PHPConfig struct {
 	Version string `mapstructure:"version"`
 }
 
-
 // AppConfig contains application container configuration
 type AppConfig struct {
 	Volumes     []string `mapstructure:"volumes"`     // Volume mappings (default: ["./:/var/www/html"])

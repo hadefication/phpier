@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	detached bool
-	build    bool
+	detached   bool
+	build      bool
+	skipGlobal bool
 )
 
 // upCmd represents the up command
@@ -30,7 +31,8 @@ This command will:
 Examples:
   phpier up                 # Start app container in the foreground
   phpier up -d              # Start app container in the background (detached)
-  phpier up --build         # Rebuild the app container image before starting`,
+  phpier up --build         # Rebuild the app container image before starting
+  phpier up --skip-global   # Start only project services, skip global service check`,
 	RunE: runUp,
 }
 
@@ -40,6 +42,7 @@ func init() {
 	// Flags
 	upCmd.Flags().BoolVarP(&detached, "detach", "d", false, "Run services in the background")
 	upCmd.Flags().BoolVar(&build, "build", false, "Build images before starting services")
+	upCmd.Flags().BoolVar(&skipGlobal, "skip-global", false, "Skip automatic global service startup check")
 }
 
 func runUp(cmd *cobra.Command, args []string) error {
@@ -55,6 +58,15 @@ func runUp(cmd *cobra.Command, args []string) error {
 	globalCfg, err := config.LoadGlobalConfig()
 	if err != nil {
 		return errors.WrapError(errors.ErrorTypeConfigNotFound, "Failed to load global config", err)
+	}
+
+	// Check and start global services if needed (unless --skip-global flag is used)
+	if !skipGlobal {
+		if err := ensureGlobalServicesRunning(globalCfg); err != nil {
+			return errors.WrapError(errors.ErrorTypeDockerError, "Failed to ensure global services are running", err)
+		}
+	} else {
+		logrus.Infof("⏭️  Skipping global service startup check (--skip-global flag used)")
 	}
 
 	// Regenerate files
@@ -81,6 +93,49 @@ func runUp(cmd *cobra.Command, args []string) error {
 	logrus.Infof("🚀 Starting project container...")
 	if err := composeManager.Up(detached); err != nil {
 		return errors.WrapError(errors.ErrorTypeDockerError, "Failed to start project container", err)
+	}
+
+	logrus.Infof("✅ Project services started successfully!")
+	if detached {
+		logrus.Infof("📝 Services are running in the background. Use 'phpier down' to stop them.")
+	}
+
+	return nil
+}
+
+// ensureGlobalServicesRunning checks if global services are running and starts them if needed
+func ensureGlobalServicesRunning(globalCfg *config.GlobalConfig) error {
+	// Create global compose manager
+	globalManager, err := docker.NewGlobalComposeManager(globalCfg)
+	if err != nil {
+		return err
+	}
+
+	// Check if global services are running
+	isRunning, err := globalManager.IsGlobalServiceRunning()
+	if err != nil {
+		return err
+	}
+
+	if !isRunning {
+		logrus.Infof("🔍 Global services not detected, starting them...")
+
+		// Create directories and generate files if needed
+		if err := generator.CreateGlobalDirectories(); err != nil {
+			return errors.WrapError(errors.ErrorTypeFileSystemError, "Failed to create global directories", err)
+		}
+
+		engine := templates.NewEngine()
+		if err := generator.GenerateGlobalFiles(engine, globalCfg); err != nil {
+			return errors.WrapError(errors.ErrorTypeTemplateError, "Failed to generate global files", err)
+		}
+
+		// Start global services
+		if err := globalManager.StartGlobalServicesIfNeeded(); err != nil {
+			return err
+		}
+	} else {
+		logrus.Debugf("Global services are already running")
 	}
 
 	return nil

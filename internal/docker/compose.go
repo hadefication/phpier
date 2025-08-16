@@ -25,6 +25,12 @@ type ComposeManager interface {
 	Build(noCache bool, services ...string) error
 }
 
+// GlobalServiceChecker interface for checking global service status.
+type GlobalServiceChecker interface {
+	IsGlobalServiceRunning() (bool, error)
+	StartGlobalServicesIfNeeded() error
+}
+
 // GlobalComposeManager handles Docker Compose operations for the global services stack.
 type GlobalComposeManager struct {
 	client     *Client
@@ -244,4 +250,47 @@ func (gcm *GlobalComposeManager) runComposeCommand(args ...string) error {
 		return gcm.client.RunCommand("docker", args...)
 	}
 	return gcm.client.RunCommand(gcm.composeCmd, args...)
+}
+
+// IsGlobalServiceRunning checks if global services (particularly Traefik) are running.
+func (gcm *GlobalComposeManager) IsGlobalServiceRunning() (bool, error) {
+	if !gcm.client.IsDockerRunning() {
+		return false, fmt.Errorf("Docker daemon is not running")
+	}
+
+	// Check if Traefik container is running by looking for phpier project containers
+	isRunning, err := gcm.client.IsContainerRunning(gcm.client.ctx, "phpier-traefik-1")
+	if err != nil {
+		// Try alternative container name pattern
+		isRunning, err = gcm.client.IsContainerRunning(gcm.client.ctx, "phpier_traefik_1")
+		if err != nil {
+			logrus.Debugf("Could not check Traefik container status: %v", err)
+			return false, nil // Don't error, just assume not running
+		}
+	}
+
+	return isRunning, nil
+}
+
+// StartGlobalServicesIfNeeded starts global services if they are not running.
+func (gcm *GlobalComposeManager) StartGlobalServicesIfNeeded() error {
+	isRunning, err := gcm.IsGlobalServiceRunning()
+	if err != nil {
+		return fmt.Errorf("failed to check global service status: %w", err)
+	}
+
+	if isRunning {
+		logrus.Debugf("Global services are already running")
+		return nil
+	}
+
+	logrus.Infof("🚀 Starting global services (Traefik)...")
+
+	// Start global services in detached mode
+	if err := gcm.Up(true); err != nil {
+		return fmt.Errorf("failed to start global services: %w", err)
+	}
+
+	logrus.Infof("✅ Global services started successfully")
+	return nil
 }

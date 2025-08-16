@@ -11,6 +11,7 @@ import (
 
 var (
 	stopGlobal    bool
+	globalFlag    bool
 	removeVolumes bool
 	force         bool
 )
@@ -29,8 +30,7 @@ This command will:
 
 Examples:
   phpier down                      # Stop project services only
-  phpier down --stop-global        # Stop project and global services
-  phpier down --remove-volumes     # Stop project and remove all volumes
+  phpier down --global             # Stop project and global services
   phpier down --force              # Force remove containers without graceful shutdown`,
 	RunE: runDown,
 }
@@ -39,7 +39,8 @@ func init() {
 	rootCmd.AddCommand(downCmd)
 
 	// Flags
-	downCmd.Flags().BoolVar(&stopGlobal, "stop-global", false, "Also stop global services after stopping project")
+	downCmd.Flags().BoolVar(&globalFlag, "global", false, "Also stop global services after stopping project")
+	downCmd.Flags().BoolVar(&stopGlobal, "stop-global", false, "Also stop global services after stopping project (legacy)")
 	downCmd.Flags().BoolVar(&removeVolumes, "remove-volumes", false, "Remove all volumes including persistent data")
 	downCmd.Flags().BoolVar(&force, "force", false, "Force remove containers without graceful shutdown")
 }
@@ -74,8 +75,8 @@ func runDown(cmd *cobra.Command, args []string) error {
 
 	logrus.Infof("✅ Project containers stopped successfully!")
 
-	// Handle global services if requested
-	if stopGlobal {
+	// Handle global services if requested (support both --global and --stop-global flags)
+	if globalFlag || stopGlobal {
 		if err := handleGlobalServicesDown(); err != nil {
 			return err
 		}

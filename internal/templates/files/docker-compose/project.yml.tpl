@@ -1,7 +1,5 @@
 name: {{.Project.Name}}
 
-version: '3.8'
-
 services:
   php:
     build:
@@ -34,3 +32,4 @@ services:
 networks:
   {{.Global.Network}}:
     external: true
+    name: phpier_{{.Global.Network}}
