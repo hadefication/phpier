@@ -59,6 +59,11 @@ func runReload(cmd *cobra.Command, args []string) error {
 		return errors.NewProjectNotInitializedError()
 	}
 
+	// Set WWWUSER to current user ID if not already set
+	if err := docker.SetWWWUser(); err != nil {
+		logrus.Warnf("Failed to set WWWUSER: %v", err)
+	}
+
 	// Validate flag combinations
 	if reloadPull && !reloadBuild {
 		return errors.NewInvalidArgumentsError("--pull flag requires --build flag")
@@ -117,3 +122,4 @@ func runReload(cmd *cobra.Command, args []string) error {
 
 	return nil
 }
+

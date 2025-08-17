@@ -230,10 +230,14 @@ if [ $# -gt 0 ]; then
 else
     echo "Starting container services..."
     
-    # Fix permissions for mounted files
-    echo "Fixing permissions..."
-    chown -R www-data:www-data /var/www/html
-    chmod -R 755 /var/www/html
+    # Skip permission changes when WWWUSER is set (user mapping handles this)
+    if [ -z "$WWWUSER" ]; then
+        echo "Fixing permissions..."
+        chown -R www-data:www-data /var/www/html
+        chmod -R 755 /var/www/html
+    else
+        echo "WWWUSER set ($WWWUSER), skipping permission changes (user mapping active)"
+    fi
     
     # Ensure supervisor directories exist with proper permissions
     mkdir -p /var/run/supervisor /var/log/supervisor

@@ -50,6 +50,11 @@ func runUp(cmd *cobra.Command, args []string) error {
 		return errors.NewProjectNotInitializedError()
 	}
 
+	// Set WWWUSER to current user ID if not already set
+	if err := docker.SetWWWUser(); err != nil {
+		logrus.Warnf("Failed to set WWWUSER: %v", err)
+	}
+
 	// Load configurations
 	projectCfg, err := config.LoadProjectConfig()
 	if err != nil {
@@ -143,3 +148,4 @@ func isProjectInitialized() bool {
 	// TODO: Also check if .phpier.yml contains phpier.managed=true label
 	return true
 }
+
