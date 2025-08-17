@@ -71,7 +71,7 @@ func (c *Client) ExecuteProxyCommand(ctx context.Context, proxyCmd *ProxyCommand
 
 	// Determine if command needs interactivity
 	needsInteractive := proxyCmd.Interactive || isInteractiveCommand(proxyCmd.Command, proxyCmd.Args)
-	
+
 	// Set up execution config based on interactivity
 	execConfig := &ExecConfig{
 		Container:    containerID,
@@ -172,14 +172,14 @@ func isInteractiveCommand(command string, args []string) bool {
 		"php":      {"artisan", "tinker"},                    // PHP artisan tinker is interactive
 		"node":     {},                                       // Node REPL is interactive when no args
 	}
-	
+
 	// Check if command is potentially interactive
 	if interactiveArgs, exists := interactiveCommands[command]; exists {
 		// If no args and command can be interactive (like node REPL)
 		if len(args) == 0 && command == "node" {
 			return true
 		}
-		
+
 		// Check for specific interactive arguments
 		for _, arg := range args {
 			for _, interactiveArg := range interactiveArgs {
@@ -189,7 +189,7 @@ func isInteractiveCommand(command string, args []string) bool {
 			}
 		}
 	}
-	
+
 	// Default to non-interactive for most commands
 	return false
 }

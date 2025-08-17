@@ -86,7 +86,7 @@ type TraefikConfig struct {
 }
 
 // PHPVersions contains supported PHP versions
-var PHPVersions = []string{"5.6", "7.3", "7.4", "8.0", "8.1", "8.2", "8.3", "8.4"}
+var PHPVersions = []string{"5.6", "7.2", "7.3", "7.4", "8.0", "8.1", "8.2", "8.3", "8.4"}
 
 // DatabaseTypes contains supported database types
 var DatabaseTypes = []string{"mysql", "postgresql", "mariadb"}

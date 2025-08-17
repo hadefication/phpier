@@ -27,12 +27,12 @@ Add support for PHP 7.2 to the phpier CLI tool. Currently phpier supports PHP ve
 - Ensure backwards compatibility with existing projects
 
 ## TODO
-- [ ] Analyze existing PHP version template structure and determine correct template for 7.2
-- [ ] Update CLI version validation to include PHP 7.2
-- [ ] Add or modify Dockerfile template for PHP 7.2 support
-- [ ] Test initialization with PHP 7.2 across all database options
-- [ ] Verify container startup and service connectivity
-- [ ] Test CLI command proxying with PHP 7.2 container
-- [ ] Update project documentation to reflect PHP 7.2 support
-- [ ] Clean up test artifacts and Docker resources
-- [ ] Mark specification as complete
+- [x] Analyze existing PHP version template structure and determine correct template for 7.2
+- [x] Update CLI version validation to include PHP 7.2
+- [x] Add or modify Dockerfile template for PHP 7.2 support
+- [x] Test initialization with PHP 7.2 across all database options
+- [x] Verify container startup and service connectivity
+- [x] Test CLI command proxying with PHP 7.2 container
+- [x] Update project documentation to reflect PHP 7.2 support
+- [x] Clean up test artifacts and Docker resources
+- [x] Mark specification as complete

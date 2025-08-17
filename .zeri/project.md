@@ -1,7 +1,7 @@
 # phpier - Project Context
 
 ## Overview
-A CLI tool to manage PHP development using Docker. Supports multiple PHP versions (5.6, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4) with Traefik for folder-based domain routing (directory.localhost).
+A CLI tool to manage PHP development using Docker. Supports multiple PHP versions (5.6, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4) with Traefik for folder-based domain routing (directory.localhost).
 
 ## Tech Stack
 - **CLI Framework**: Go with Cobra + Viper (industry standard for CLI tools)
@@ -51,7 +51,7 @@ CLI tool development and Docker environment setup
 Docker-based development with automatic domain routing via Traefik
 
 ## Important Notes
-- Supports PHP 5.6 through 8.4
+- Supports PHP 5.6, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4
 - Uses folder-based domain naming convention
 - All development tools accessible through CLI proxy commands
 

@@ -4,7 +4,7 @@ A powerful CLI tool for managing PHP development environments using Docker. Like
 
 ## 🚀 Features
 
-- **Multi-PHP Support**: PHP 5.6, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4
+- **Multi-PHP Support**: PHP 5.6, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4
 - **Global Services**: Shared Traefik, databases, and tools across all projects
 - **Database Options**: MySQL, PostgreSQL, MariaDB with admin tools
 - **Caching Services**: Redis and Memcached support

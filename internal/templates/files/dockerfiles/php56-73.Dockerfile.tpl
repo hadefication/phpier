@@ -3,7 +3,13 @@ FROM php:{{.Project.PHP}}-fpm
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies for older PHP versions
+# Fix Debian Buster repositories (EOL) for older PHP versions
+RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list \
+    && sed -i 's|http://security.debian.org/debian-security|http://archive.debian.org/debian-security|g' /etc/apt/sources.list \
+    && sed -i '/stretch-updates/d' /etc/apt/sources.list \
+    && sed -i '/buster-updates/d' /etc/apt/sources.list
+
+# Install system dependencies for older PHP versions  
 RUN apt-get update && apt-get install -y \
     git \
     curl \
