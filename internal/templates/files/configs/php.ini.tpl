@@ -20,7 +20,6 @@ error_log = /var/log/php_errors.log
 
 ; Development settings
 html_errors = On
-track_errors = On
 
 ; Date and timezone
 date.timezone = UTC

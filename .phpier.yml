@@ -6,4 +6,4 @@ app:
         - APP_DEBUG=true
 name: phpier-test
 node: lts
-php: "7.4"
+php: "8.0"

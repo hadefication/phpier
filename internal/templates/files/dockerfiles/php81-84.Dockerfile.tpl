@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 
 # Install core PHP extensions available in modern versions (dependencies first, then dependent extensions)
+# Note: tokenizer is built-in for PHP 8.1+ and should not be installed manually
 RUN docker-php-ext-install -j$(nproc) \
     bcmath \
     calendar \
@@ -49,7 +50,6 @@ RUN docker-php-ext-install -j$(nproc) \
     session \
     soap \
     sockets \
-    tokenizer \
     xml \
     zip
 
