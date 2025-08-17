@@ -15,6 +15,17 @@ import (
 type DownOptions struct {
 	RemoveVolumes bool
 	Force         bool
+	Timeout       int
+}
+
+// ReloadOptions represents options for the reload operation
+type ReloadOptions struct {
+	Detached bool
+	Build    bool
+	Force    bool
+	Timeout  int
+	Pull     bool
+	NoCache  bool
 }
 
 // ComposeManager interface for Docker Compose operations.
@@ -23,6 +34,7 @@ type ComposeManager interface {
 	Down(removeVolumes bool) error
 	DownWithOptions(options DownOptions) error
 	Build(noCache bool, services ...string) error
+	Reload(options ReloadOptions) error
 }
 
 // GlobalServiceChecker interface for checking global service status.
@@ -106,6 +118,9 @@ func (cm *ProjectComposeManager) DownWithOptions(options DownOptions) error {
 	if options.Force {
 		args = append(args, "--remove-orphans")
 	}
+	if options.Timeout > 0 {
+		args = append(args, "--timeout", fmt.Sprintf("%d", options.Timeout))
+	}
 
 	return cm.runComposeCommand(args...)
 }
@@ -119,6 +134,51 @@ func (cm *ProjectComposeManager) Build(noCache bool, services ...string) error {
 	args = append(args, services...)
 
 	return cm.runComposeCommand(args...)
+}
+
+// Reload restarts the Docker Compose services for a project with various options.
+func (cm *ProjectComposeManager) Reload(options ReloadOptions) error {
+	if !cm.client.IsDockerRunning() {
+		return fmt.Errorf("Docker daemon is not running. Please start Docker")
+	}
+
+	// Step 1: Stop services
+	logrus.Infof("🛑 Stopping project services...")
+	downOptions := DownOptions{
+		RemoveVolumes: false,
+		Force:         options.Force,
+		Timeout:       options.Timeout,
+	}
+	if err := cm.DownWithOptions(downOptions); err != nil {
+		return fmt.Errorf("failed to stop services: %w", err)
+	}
+
+	// Step 2: Build if requested
+	if options.Build {
+		logrus.Infof("🔨 Building project image...")
+		
+		// Pull latest images if requested
+		if options.Pull {
+			logrus.Infof("📥 Pulling latest base images...")
+			pullArgs := cm.buildComposeArgs("pull")
+			if err := cm.runComposeCommand(pullArgs...); err != nil {
+				return fmt.Errorf("failed to pull images: %w", err)
+			}
+		}
+		
+		// Build with options
+		if err := cm.Build(options.NoCache, "app"); err != nil {
+			return fmt.Errorf("failed to build project image: %w", err)
+		}
+	}
+
+	// Step 3: Start services
+	logrus.Infof("🚀 Starting project services...")
+	if err := cm.Up(options.Detached); err != nil {
+		return fmt.Errorf("failed to start services: %w", err)
+	}
+
+	return nil
 }
 
 // buildComposeArgs builds the base arguments for project docker-compose commands.
@@ -210,6 +270,9 @@ func (gcm *GlobalComposeManager) DownWithOptions(options DownOptions) error {
 	if options.Force {
 		args = append(args, "--remove-orphans")
 	}
+	if options.Timeout > 0 {
+		args = append(args, "--timeout", fmt.Sprintf("%d", options.Timeout))
+	}
 
 	return gcm.runComposeCommand(args...)
 }
@@ -223,6 +286,11 @@ func (gcm *GlobalComposeManager) Build(noCache bool, services ...string) error {
 	args = append(args, services...)
 
 	return gcm.runComposeCommand(args...)
+}
+
+// Reload is not supported for global services - use 'phpier global down' and 'phpier global up' instead.
+func (gcm *GlobalComposeManager) Reload(options ReloadOptions) error {
+	return fmt.Errorf("reload is not supported for global services - use 'phpier global down' and 'phpier global up' instead")
 }
 
 // buildComposeArgs builds the base arguments for global docker-compose commands.
