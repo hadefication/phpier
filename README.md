@@ -422,6 +422,8 @@ phpier up --build  # Rebuild and restart with changes
 - **Application**: `http://<project-name>.localhost`
 - **HTTPS**: `https://<project-name>.localhost` (self-signed cert)
 - **Traefik Dashboard**: `http://localhost:8080`
+- **Adminer (Database)**: `http://phpier-mysql.localhost`
+- **Mailpit (Email)**: `http://phpier-mailpit.localhost`
 
 ### Without Traefik
 - **Application**: `http://localhost:80`
@@ -448,7 +450,7 @@ phpier up --build  # Rebuild and restart with changes
 ## 📧 Email Testing
 
 Mailpit is included for email testing:
-- **Web Interface**: `http://localhost:8025`
+- **Web Interface**: `http://localhost:8025` (direct port) or `http://phpier-mailpit.localhost` (Traefik domain)
 - **SMTP Server**: `localhost:1025`
 
 Configure your application:
