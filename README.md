@@ -416,6 +416,33 @@ phpier down      # Stop current container
 phpier up --build  # Rebuild and restart with changes
 ```
 
+### When to Rebuild vs Restart
+
+**Rebuild Required** (`phpier up --build -d`):
+- Changes to `.phpier/` directory contents (Dockerfile, nginx configs, PHP configs, supervisor configs)
+- Changes to `.phpier.yml` Docker Compose configuration
+- Adding new PHP extensions or system packages
+- Modifying container build process
+
+**Restart Only** (`phpier up -d`):
+- Changes to application code (files in your project directory)
+- Data or content files that are volume-mounted
+- No container configuration changes
+
+**Quick Reference:**
+```bash
+# After config changes - rebuild required
+phpier down && phpier up --build -d
+
+# After code changes - restart only
+phpier down && phpier up -d
+
+# Alternative reload command (restarts services without rebuilding)
+phpier reload
+```
+
+**Why?** Files in `.phpier/` are copied into the Docker image during build time, while your application files are mounted as volumes and update in real-time.
+
 ## 🌐 Domain Access
 
 ### With Traefik (Default)
