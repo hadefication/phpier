@@ -10,7 +10,7 @@ RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /
     && sed -i '/buster-updates/d' /etc/apt/sources.list
 
 # Install system dependencies for older PHP versions  
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --allow-unauthenticated \
     git \
     curl \
     unzip \
@@ -62,44 +62,8 @@ RUN pecl install redis-4.3.0 \
 # Install Composer compatible with older PHP versions
 COPY --from=composer:2.2 /usr/bin/composer /usr/bin/composer
 
-# Install Node.js (if configured)
-{{- if shouldInstallNode .Project.Node }}
-{{- $nodeVersion := resolveNodeVersion .Project.Node }}
-{{- if eq $nodeVersion "lts" }}
-# Install Node.js LTS
-RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
-{{- else if eq $nodeVersion "16" }}
-# Install Node.js 16.x (latest available)
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
-{{- else if eq $nodeVersion "18" }}
-# Install Node.js 18.x (latest available)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
-{{- else if eq $nodeVersion "20" }}
-# Install Node.js 20.x (latest available)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
-{{- else if eq $nodeVersion "22" }}
-# Install Node.js 22.x (latest available)
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
-{{- else }}
-# Install specific Node.js version: {{ $nodeVersion }}
-{{- $majorVersion := index (split $nodeVersion ".") 0 }}
-RUN curl -fsSL https://deb.nodesource.com/setup_{{ $majorVersion }}.x | bash - \
-    && apt-get install -y nodejs={{ $nodeVersion }}-1nodesource1 \
-    && npm install -g npm@latest
-{{- end }}
-{{- else }}
-# Node.js installation skipped (node: none)
-{{- end }}
+# Node.js installation skipped for PHP 5.6 to avoid compatibility issues with Debian Stretch
+# If you need Node.js with PHP 5.6, consider using a newer PHP version or manual installation
 
 # Copy custom PHP configuration
 COPY .phpier/docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini

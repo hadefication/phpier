@@ -108,7 +108,13 @@ func createProjectConfig() *config.ProjectConfig {
 	// Top-level configuration
 	cfg.Name = projectName
 	cfg.PHP = phpVersion
-	cfg.Node = "lts" // Default to latest LTS version
+	
+	// Set Node.js version based on PHP version
+	if phpVersion == "5.6" {
+		cfg.Node = "none" // Skip Node.js for PHP 5.6 due to Debian Stretch compatibility issues
+	} else {
+		cfg.Node = "lts" // Default to latest LTS version for other PHP versions
+	}
 
 	// App configuration
 	cfg.App.Volumes = []string{"../:/var/www/html"}
