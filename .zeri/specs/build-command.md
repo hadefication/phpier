@@ -22,9 +22,9 @@ Add a `phpier build` command that builds (or rebuilds) the app container for the
 - Follow existing command structure and naming conventions
 
 ## TODO
-- [ ] Design and plan implementation
-- [ ] Implement core functionality
-- [ ] Add tests
-- [ ] Update documentation
-- [ ] Review and refine
-- [ ] Mark specification as complete
+- [x] Design and plan implementation
+- [x] Implement core functionality
+- [x] Add tests
+- [x] Update documentation
+- [x] Review and refine
+- [x] Mark specification as complete
