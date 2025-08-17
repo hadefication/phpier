@@ -41,9 +41,9 @@ func runMySQL(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load global config: %w", err)
 	}
 
-	// Check if MySQL is the configured database type
-	if globalConfig.Services.Database.Type != "mysql" {
-		return fmt.Errorf("MySQL is not configured as the database type (current: %s)\n\nUpdate your global configuration to use MySQL", globalConfig.Services.Database.Type)
+	// Check if MySQL is enabled
+	if !globalConfig.IsDatabaseEnabled("mysql") {
+		return fmt.Errorf("MySQL is not enabled\n\nRun 'phpier global db enable mysql' to enable MySQL")
 	}
 
 	// Create Docker client
@@ -77,15 +77,18 @@ func runMySQL(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("MySQL container is not running\n\nTry running 'phpier global up' to start the global services")
 	}
 
+	// Get MySQL configuration
+	mysqlConfig := globalConfig.Services.Databases.MySQL
+
 	// Prepare MySQL command
 	var mysqlCommand []string
 	if len(args) > 0 {
 		// Execute SQL query from arguments
 		query := strings.Join(args, " ")
-		mysqlCommand = []string{"mysql", "-u", "root", "-proot", "-e", query}
+		mysqlCommand = []string{"mysql", "-u", mysqlConfig.Username, fmt.Sprintf("-p%s", mysqlConfig.Password), "-e", query}
 	} else {
 		// Interactive MySQL shell
-		mysqlCommand = []string{"mysql", "-u", "root", "-proot"}
+		mysqlCommand = []string{"mysql", "-u", mysqlConfig.Username, fmt.Sprintf("-p%s", mysqlConfig.Password)}
 	}
 
 	// Set up execution config

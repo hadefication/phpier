@@ -55,9 +55,9 @@ func runMaria(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load global config: %w", err)
 	}
 
-	// Check if MariaDB is the configured database type
-	if globalConfig.Services.Database.Type != "mariadb" {
-		return fmt.Errorf("MariaDB is not configured as the database type (current: %s)\n\nUpdate your global configuration to use MariaDB", globalConfig.Services.Database.Type)
+	// Check if MariaDB is enabled
+	if !globalConfig.IsDatabaseEnabled("mariadb") {
+		return fmt.Errorf("MariaDB is not enabled\n\nRun 'phpier global db enable mariadb' to enable MariaDB")
 	}
 
 	// Create Docker client
@@ -91,15 +91,18 @@ func runMaria(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("MariaDB container is not running\n\nTry running 'phpier global up' to start the global services")
 	}
 
+	// Get MariaDB configuration
+	mariaConfig := globalConfig.Services.Databases.MariaDB
+
 	// Prepare MariaDB command
 	var mariaCommand []string
 	if len(args) > 0 {
 		// Execute SQL query from arguments
 		query := strings.Join(args, " ")
-		mariaCommand = []string{"mariadb", "-u", "phpier", "-pphpier", "phpier", "-e", query}
+		mariaCommand = []string{"mariadb", "-u", mariaConfig.Username, fmt.Sprintf("-p%s", mariaConfig.Password), mariaConfig.Database, "-e", query}
 	} else {
 		// Interactive MariaDB shell
-		mariaCommand = []string{"mariadb", "-u", "phpier", "-pphpier", "phpier"}
+		mariaCommand = []string{"mariadb", "-u", mariaConfig.Username, fmt.Sprintf("-p%s", mariaConfig.Password), mariaConfig.Database}
 	}
 
 	// Set up execution config
@@ -124,9 +127,9 @@ func runMaria(cmd *cobra.Command, args []string) error {
 			logrus.Debug("MariaDB client not available, falling back to mysql client")
 			if len(args) > 0 {
 				query := strings.Join(args, " ")
-				execConfig.Command = []string{"mysql", "-u", "phpier", "-pphpier", "phpier", "-e", query}
+				execConfig.Command = []string{"mysql", "-u", mariaConfig.Username, fmt.Sprintf("-p%s", mariaConfig.Password), mariaConfig.Database, "-e", query}
 			} else {
-				execConfig.Command = []string{"mysql", "-u", "phpier", "-pphpier", "phpier"}
+				execConfig.Command = []string{"mysql", "-u", mariaConfig.Username, fmt.Sprintf("-p%s", mariaConfig.Password), mariaConfig.Database}
 			}
 			exitCode, err = dockerClient.ExecInteractive(ctx, execConfig)
 			if err != nil {

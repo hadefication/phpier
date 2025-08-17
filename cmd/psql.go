@@ -55,9 +55,9 @@ func runPSQL(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load global config: %w", err)
 	}
 
-	// Check if PostgreSQL is the configured database type
-	if globalConfig.Services.Database.Type != "postgresql" {
-		return fmt.Errorf("PostgreSQL is not configured as the database type (current: %s)\n\nUpdate your global configuration to use PostgreSQL", globalConfig.Services.Database.Type)
+	// Check if PostgreSQL is enabled
+	if !globalConfig.IsDatabaseEnabled("postgresql") {
+		return fmt.Errorf("PostgreSQL is not enabled\n\nRun 'phpier global db enable postgresql' to enable PostgreSQL")
 	}
 
 	// Create Docker client
@@ -91,14 +91,17 @@ func runPSQL(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("PostgreSQL container is not running\n\nTry running 'phpier global up' to start the global services")
 	}
 
+	// Get PostgreSQL configuration
+	pgConfig := globalConfig.Services.Databases.PostgreSQL
+
 	// Prepare PostgreSQL command
 	var psqlCommand []string
 	if len(args) > 0 {
 		// Execute SQL query from arguments
-		psqlCommand = append([]string{"psql", "-U", "phpier", "-d", "phpier"}, args...)
+		psqlCommand = append([]string{"psql", "-U", pgConfig.Username, "-d", pgConfig.Database}, args...)
 	} else {
 		// Interactive psql shell
-		psqlCommand = []string{"psql", "-U", "phpier", "-d", "phpier"}
+		psqlCommand = []string{"psql", "-U", pgConfig.Username, "-d", pgConfig.Database}
 	}
 
 	// Set up execution config with PGPASSWORD environment variable
@@ -111,7 +114,7 @@ func runPSQL(cmd *cobra.Command, args []string) error {
 		AttachStdout: true,
 		AttachStderr: true,
 		AttachStdin:  len(args) == 0, // Stdin only for interactive mode
-		Environment:  []string{"PGPASSWORD=phpier"},
+		Environment:  []string{fmt.Sprintf("PGPASSWORD=%s", pgConfig.Password)},
 	}
 
 	logrus.Debugf("Executing PostgreSQL command in container %s", containerID)

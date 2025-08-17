@@ -21,17 +21,20 @@ services:
       - "traefik.http.routers.traefik.entrypoints=web"
       - "traefik.http.services.traefik.loadbalancer.server.port=8080"
 
-  {{if eq .Global.Services.Database.Type "mysql"}}
+  {{if .Global.Services.Databases.MySQL.Enabled}}
   mysql:
-    image: mysql:{{.Global.Services.Database.Version}}
+    image: mysql:{{.Global.Services.Databases.MySQL.Version}}
     container_name: phpier-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: {{.Global.Services.Databases.MySQL.Password}}
+      MYSQL_DATABASE: {{.Global.Services.Databases.MySQL.Database}}
+      MYSQL_USER: {{.Global.Services.Databases.MySQL.Username}}
+      MYSQL_PASSWORD: {{.Global.Services.Databases.MySQL.Password}}
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "{{.Global.Services.Database.Port}}:3306"
+      - "{{.Global.Services.Databases.MySQL.Port}}:3306"
     networks:
       - {{.Global.Network}}
     labels:
@@ -41,19 +44,19 @@ services:
       - "traefik.tcp.services.mysql.loadbalancer.server.port=3306"
   {{end}}
 
-  {{if eq .Global.Services.Database.Type "postgresql"}}
+  {{if .Global.Services.Databases.PostgreSQL.Enabled}}
   postgres:
-    image: postgres:{{.Global.Services.Database.Version}}
+    image: postgres:{{.Global.Services.Databases.PostgreSQL.Version}}
     container_name: phpier-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: phpier
-      POSTGRES_USER: phpier
-      POSTGRES_PASSWORD: phpier
+      POSTGRES_DB: {{.Global.Services.Databases.PostgreSQL.Database}}
+      POSTGRES_USER: {{.Global.Services.Databases.PostgreSQL.Username}}
+      POSTGRES_PASSWORD: {{.Global.Services.Databases.PostgreSQL.Password}}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "{{.Global.Services.Database.Port}}:5432"
+      - "{{.Global.Services.Databases.PostgreSQL.Port}}:5432"
     networks:
       - {{.Global.Network}}
     labels:
@@ -63,20 +66,20 @@ services:
       - "traefik.tcp.services.postgres.loadbalancer.server.port=5432"
   {{end}}
 
-  {{if eq .Global.Services.Database.Type "mariadb"}}
+  {{if .Global.Services.Databases.MariaDB.Enabled}}
   mariadb:
-    image: mariadb:{{.Global.Services.Database.Version}}
+    image: mariadb:{{.Global.Services.Databases.MariaDB.Version}}
     container_name: phpier-mariadb
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: phpier
-      MYSQL_USER: phpier
-      MYSQL_PASSWORD: phpier
+      MYSQL_ROOT_PASSWORD: {{.Global.Services.Databases.MariaDB.Password}}
+      MYSQL_DATABASE: {{.Global.Services.Databases.MariaDB.Database}}
+      MYSQL_USER: {{.Global.Services.Databases.MariaDB.Username}}
+      MYSQL_PASSWORD: {{.Global.Services.Databases.MariaDB.Password}}
     volumes:
       - mariadb_data:/var/lib/mysql
     ports:
-      - "{{.Global.Services.Database.Port}}:3306"
+      - "{{.Global.Services.Databases.MariaDB.Port}}:3306"
     networks:
       - {{.Global.Network}}
     labels:
@@ -122,7 +125,7 @@ services:
   {{end}}
 
   # Web interfaces for database and cache management
-  {{if eq .Global.Services.Database.Type "mysql"}}
+  {{if or .Global.Services.Databases.MySQL.Enabled .Global.Services.Databases.MariaDB.Enabled}}
   adminer:
     image: adminer:latest
     container_name: phpier-adminer
@@ -131,7 +134,7 @@ services:
       - {{.Global.Network}}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.adminer.rule=Host(`phpier-mysql.{{.Global.Traefik.Domain}}`)"
+      - "traefik.http.routers.adminer.rule=Host(`phpier-adminer.{{.Global.Traefik.Domain}}`)"
       - "traefik.http.routers.adminer.entrypoints=web"
       - "traefik.http.services.adminer.loadbalancer.server.port=8080"
   {{end}}
@@ -141,13 +144,13 @@ networks:
     driver: bridge
 
 volumes:
-  {{if eq .Global.Services.Database.Type "mysql"}}
+  {{if .Global.Services.Databases.MySQL.Enabled}}
   mysql_data:
   {{end}}
-  {{if eq .Global.Services.Database.Type "postgresql"}}
+  {{if .Global.Services.Databases.PostgreSQL.Enabled}}
   postgres_data:
   {{end}}
-  {{if eq .Global.Services.Database.Type "mariadb"}}
+  {{if .Global.Services.Databases.MariaDB.Enabled}}
   mariadb_data:
   {{end}}
   {{if serviceEnabled "redis" .Global}}

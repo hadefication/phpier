@@ -41,16 +41,34 @@ type AppConfig struct {
 
 // ServicesConfig contains global service configurations
 type ServicesConfig struct {
-	Database DatabaseConfig `mapstructure:"database"`
-	Cache    CacheConfig    `mapstructure:"cache"`
-	Tools    ToolsConfig    `mapstructure:"tools"`
+	Database  DatabaseConfig  `mapstructure:"database"`  // Legacy single database config
+	Databases DatabasesConfig `mapstructure:"databases"` // New multi-database config
+	Cache     CacheConfig     `mapstructure:"cache"`
+	Tools     ToolsConfig     `mapstructure:"tools"`
 }
 
-// DatabaseConfig contains global database configuration
+// DatabaseConfig contains global database configuration (legacy)
 type DatabaseConfig struct {
 	Type    string `mapstructure:"type"`
 	Version string `mapstructure:"version"`
 	Port    int    `mapstructure:"port"`
+}
+
+// DatabasesConfig contains multiple database service configurations
+type DatabasesConfig struct {
+	MySQL      DatabaseServiceConfig `mapstructure:"mysql"`
+	PostgreSQL DatabaseServiceConfig `mapstructure:"postgresql"`
+	MariaDB    DatabaseServiceConfig `mapstructure:"mariadb"`
+}
+
+// DatabaseServiceConfig contains individual database service configuration
+type DatabaseServiceConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	Version  string `mapstructure:"version"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+	Database string `mapstructure:"database"`
 }
 
 // CacheConfig contains global cache service configuration
@@ -141,6 +159,15 @@ func LoadGlobalConfig() (*GlobalConfig, error) {
 		return nil, fmt.Errorf("unable to decode global config: %w", err)
 	}
 
+	// Migrate legacy configuration if needed
+	if migrated := migrateFromLegacyConfig(&config); migrated {
+		// Save the migrated configuration
+		if err := SaveGlobalConfig(&config); err != nil {
+			// Log warning but don't fail - user can still use legacy config
+			fmt.Printf("Warning: Failed to save migrated configuration: %v\n", err)
+		}
+	}
+
 	return &config, nil
 }
 
@@ -180,7 +207,10 @@ func SaveGlobalConfig(config *GlobalConfig) error {
 	globalViper.Set("network", config.Network)
 
 	if err := globalViper.SafeWriteConfig(); err != nil {
-		return fmt.Errorf("failed to write global config file: %w", err)
+		// If file exists, use WriteConfig to overwrite
+		if err := globalViper.WriteConfig(); err != nil {
+			return fmt.Errorf("failed to write global config file: %w", err)
+		}
 	}
 	return nil
 }
@@ -191,9 +221,32 @@ func setGlobalDefaults(v *viper.Viper) {
 	v.SetDefault("traefik.port", 80)
 	v.SetDefault("traefik.ssl_port", 443)
 
+	// Legacy single database config (for backwards compatibility)
 	v.SetDefault("services.database.type", "mysql")
 	v.SetDefault("services.database.version", "8.0")
 	v.SetDefault("services.database.port", 3306)
+
+	// New multi-database config
+	v.SetDefault("services.databases.mysql.enabled", true)
+	v.SetDefault("services.databases.mysql.version", "8.0")
+	v.SetDefault("services.databases.mysql.port", 3306)
+	v.SetDefault("services.databases.mysql.username", "phpier")
+	v.SetDefault("services.databases.mysql.password", "phpier")
+	v.SetDefault("services.databases.mysql.database", "phpier")
+
+	v.SetDefault("services.databases.postgresql.enabled", false)
+	v.SetDefault("services.databases.postgresql.version", "15")
+	v.SetDefault("services.databases.postgresql.port", 5432)
+	v.SetDefault("services.databases.postgresql.username", "phpier")
+	v.SetDefault("services.databases.postgresql.password", "phpier")
+	v.SetDefault("services.databases.postgresql.database", "phpier")
+
+	v.SetDefault("services.databases.mariadb.enabled", false)
+	v.SetDefault("services.databases.mariadb.version", "10.11")
+	v.SetDefault("services.databases.mariadb.port", 3307)
+	v.SetDefault("services.databases.mariadb.username", "phpier")
+	v.SetDefault("services.databases.mariadb.password", "phpier")
+	v.SetDefault("services.databases.mariadb.database", "phpier")
 
 	v.SetDefault("services.cache.redis.enabled", true)
 	v.SetDefault("services.cache.redis.port", 6379)
@@ -223,4 +276,77 @@ func IsValidPHPVersion(version string) bool {
 		}
 	}
 	return false
+}
+
+// GetEnabledDatabases returns a list of enabled database services
+func (c *GlobalConfig) GetEnabledDatabases() map[string]DatabaseServiceConfig {
+	enabled := make(map[string]DatabaseServiceConfig)
+
+	if c.Services.Databases.MySQL.Enabled {
+		enabled["mysql"] = c.Services.Databases.MySQL
+	}
+	if c.Services.Databases.PostgreSQL.Enabled {
+		enabled["postgresql"] = c.Services.Databases.PostgreSQL
+	}
+	if c.Services.Databases.MariaDB.Enabled {
+		enabled["mariadb"] = c.Services.Databases.MariaDB
+	}
+
+	return enabled
+}
+
+// GetDatabaseService returns the configuration for a specific database service
+func (c *GlobalConfig) GetDatabaseService(dbType string) (DatabaseServiceConfig, bool) {
+	switch dbType {
+	case "mysql":
+		return c.Services.Databases.MySQL, true
+	case "postgresql":
+		return c.Services.Databases.PostgreSQL, true
+	case "mariadb":
+		return c.Services.Databases.MariaDB, true
+	default:
+		return DatabaseServiceConfig{}, false
+	}
+}
+
+// IsDatabaseEnabled checks if a specific database service is enabled
+func (c *GlobalConfig) IsDatabaseEnabled(dbType string) bool {
+	config, exists := c.GetDatabaseService(dbType)
+	return exists && config.Enabled
+}
+
+// migrateFromLegacyConfig migrates legacy single database configuration to new multi-database format
+func migrateFromLegacyConfig(config *GlobalConfig) bool {
+	// Check if we have legacy config and no new config
+	if config.Services.Database.Type != "" && !hasNewDatabaseConfig(config) {
+		fmt.Println("Migrating legacy database configuration to new multi-database format...")
+
+		// Enable the legacy database type in the new format
+		switch config.Services.Database.Type {
+		case "mysql":
+			config.Services.Databases.MySQL.Enabled = true
+			config.Services.Databases.MySQL.Version = config.Services.Database.Version
+			config.Services.Databases.MySQL.Port = config.Services.Database.Port
+		case "postgresql":
+			config.Services.Databases.PostgreSQL.Enabled = true
+			config.Services.Databases.PostgreSQL.Version = config.Services.Database.Version
+			config.Services.Databases.PostgreSQL.Port = config.Services.Database.Port
+		case "mariadb":
+			config.Services.Databases.MariaDB.Enabled = true
+			config.Services.Databases.MariaDB.Version = config.Services.Database.Version
+			config.Services.Databases.MariaDB.Port = config.Services.Database.Port
+		}
+
+		fmt.Printf("✓ Migrated %s database configuration\n", config.Services.Database.Type)
+		fmt.Println("Use 'phpier global db list' to see enabled database services")
+		return true
+	}
+	return false
+}
+
+// hasNewDatabaseConfig checks if the new multi-database configuration is present
+func hasNewDatabaseConfig(config *GlobalConfig) bool {
+	return config.Services.Databases.MySQL.Enabled ||
+		config.Services.Databases.PostgreSQL.Enabled ||
+		config.Services.Databases.MariaDB.Enabled
 }
