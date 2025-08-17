@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: .phpier/Dockerfile.php
+    image: phpier-{{.Project.Name}}:{{.Project.PHP}}
     container_name: {{.Project.Name}}-app
     restart: unless-stopped
     volumes:
