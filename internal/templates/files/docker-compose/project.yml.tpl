@@ -1,11 +1,11 @@
 name: {{.Project.Name}}
 
 services:
-  php:
+  app:
     build:
       context: ..
       dockerfile: .phpier/Dockerfile.php
-    container_name: {{.Project.Name}}-php
+    container_name: {{.Project.Name}}-app
     restart: unless-stopped
     volumes:
 {{- range $volume := .Project.App.Volumes}}

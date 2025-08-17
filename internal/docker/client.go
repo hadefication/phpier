@@ -17,6 +17,7 @@ type ExecConfig struct {
 	Container    string
 	Command      []string
 	WorkingDir   string
+	User         string
 	Tty          bool
 	AttachStdout bool
 	AttachStderr bool
@@ -133,13 +134,10 @@ func (c *Client) GetContainerID(projectName, serviceName string) (string, error)
 	if strings.Contains(composeCmdStr, " ") {
 		parts := strings.Split(composeCmdStr, " ")
 		composeCmdStr = parts[0]
-		args = append(parts[1:], "ps", "-q", serviceName)
+		args = append(parts[1:], "-p", projectName, "ps", "-q", serviceName)
 	} else {
-		args = []string{"ps", "-q", serviceName}
+		args = []string{"-p", projectName, "ps", "-q", serviceName}
 	}
-
-	// Set project name
-	args = append([]string{"-p", projectName}, args...)
 
 	containerID, err := c.RunCommandOutput(composeCmdStr, args...)
 	if err != nil {
@@ -183,6 +181,21 @@ func (c *Client) IsContainerRunning(ctx context.Context, containerName string) (
 	return false, nil
 }
 
+// IsContainerRunningByID checks if a container is running by container ID
+func (c *Client) IsContainerRunningByID(ctx context.Context, containerID string) (bool, error) {
+	if containerID == "" {
+		return false, nil
+	}
+
+	output, err := c.RunCommandOutput("docker", "inspect", "--format", "{{.State.Status}}", containerID)
+	if err != nil {
+		return false, err
+	}
+
+	status := strings.TrimSpace(output)
+	return status == "running", nil
+}
+
 // ExecInteractive executes a command interactively in a container
 func (c *Client) ExecInteractive(ctx context.Context, config *ExecConfig) (int, error) {
 	args := []string{"exec"}
@@ -194,6 +207,11 @@ func (c *Client) ExecInteractive(ctx context.Context, config *ExecConfig) (int, 
 		args = append(args, "-i")
 	} else if config.Tty {
 		args = append(args, "-t")
+	}
+
+	// Add user if specified
+	if config.User != "" {
+		args = append(args, "--user", config.User)
 	}
 
 	// Add working directory if specified

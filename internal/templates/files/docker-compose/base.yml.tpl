@@ -1,11 +1,11 @@
 name: {{.Config.Docker.ProjectName}}
 
 services:
-  php:
+  app:
     build:
       context: ..
       dockerfile: .phpier/Dockerfile.php
-    container_name: {{.Config.Docker.ProjectName}}-php
+    container_name: {{.Config.Docker.ProjectName}}-app
     restart: unless-stopped
     volumes:
       - ..:/var/www/html
