@@ -22,6 +22,7 @@ type ExecConfig struct {
 	AttachStdout bool
 	AttachStderr bool
 	AttachStdin  bool
+	Environment  []string
 }
 
 // Client represents a Docker client wrapper
@@ -217,6 +218,11 @@ func (c *Client) ExecInteractive(ctx context.Context, config *ExecConfig) (int, 
 	// Add working directory if specified
 	if config.WorkingDir != "" {
 		args = append(args, "-w", config.WorkingDir)
+	}
+
+	// Add environment variables if specified
+	for _, env := range config.Environment {
+		args = append(args, "-e", env)
 	}
 
 	// Add container name
