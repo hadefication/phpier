@@ -1,0 +1,9 @@
+app:
+    volumes:
+        - ../:/var/www/html
+    environment:
+        - APP_ENV=local
+        - APP_DEBUG=true
+name: phpier-test
+node: lts
+php: "7.4"

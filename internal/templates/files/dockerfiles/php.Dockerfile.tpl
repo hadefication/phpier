@@ -20,13 +20,14 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     libmagickwand-dev \
     libcurl4-openssl-dev \
+    libssl-dev \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure PHP extensions that need special configuration
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 
-# Install essential PHP extensions
+# Install essential PHP extensions (dependencies first, then dependent extensions)
 RUN docker-php-ext-install -j$(nproc) \
     bcmath \
     calendar \
@@ -47,14 +48,15 @@ RUN docker-php-ext-install -j$(nproc) \
     pdo_pgsql \
     pgsql \
     session \
-    simplexml \
     soap \
     sockets \
     tokenizer \
     xml \
-    xmlreader \
-    xmlwriter \
     zip
+
+# Install XML-dependent extensions separately to avoid dependency conflicts
+RUN docker-php-ext-install \
+    simplexml
 
 # Install common PECL extensions
 RUN pecl install redis igbinary \

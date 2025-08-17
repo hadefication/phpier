@@ -1,4 +1,4 @@
-FROM php:{{.Project.PHP}}-fpm
+FROM php:7.4-fpm
 
 # Set working directory
 WORKDIR /var/www/html
@@ -65,43 +65,10 @@ RUN pecl install redis igbinary \
 COPY --from=composer:2.2 /usr/bin/composer /usr/bin/composer
 
 # Install Node.js (if configured)
-{{- if shouldInstallNode .Project.Node }}
-{{- $nodeVersion := resolveNodeVersion .Project.Node }}
-{{- if eq $nodeVersion "lts" }}
 # Install Node.js LTS
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g npm@latest
-{{- else if eq $nodeVersion "16" }}
-# Install Node.js 16.x (latest available)
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
-{{- else if eq $nodeVersion "18" }}
-# Install Node.js 18.x (latest available)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
-{{- else if eq $nodeVersion "20" }}
-# Install Node.js 20.x (latest available)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
-{{- else if eq $nodeVersion "22" }}
-# Install Node.js 22.x (latest available)
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
-{{- else }}
-# Install specific Node.js version: {{ $nodeVersion }}
-{{- $majorVersion := index (split $nodeVersion ".") 0 }}
-RUN curl -fsSL https://deb.nodesource.com/setup_{{ $majorVersion }}.x | bash - \
-    && apt-get install -y nodejs={{ $nodeVersion }}-1nodesource1 \
-    && npm install -g npm@latest
-{{- end }}
-{{- else }}
-# Node.js installation skipped (node: none)
-{{- end }}
 
 # Copy custom PHP configuration
 COPY .phpier/docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini

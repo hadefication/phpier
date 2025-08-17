@@ -1,0 +1,30 @@
+name: phpier-test
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .phpier/Dockerfile.php
+    container_name: phpier-test-app
+    restart: unless-stopped
+    volumes:
+      - ../:/var/www/html
+      - ./.phpier/logs/nginx:/var/log/nginx
+      - ./.phpier/logs/php:/var/log/php
+      - ./.phpier/logs/supervisor:/var/log/supervisor
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+    networks:
+      - phpier_global
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phpier-test.rule=Host(`phpier-test.localhost`)"
+      - "traefik.http.routers.phpier-test.entrypoints=web"
+      - "traefik.http.services.phpier-test.loadbalancer.server.port=80"
+      - "traefik.docker.network=phpier_global"
+
+networks:
+  phpier_global:
+    external: true
+    name: phpier_phpier_global
