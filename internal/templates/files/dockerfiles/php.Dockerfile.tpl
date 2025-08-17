@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     nginx \
     supervisor \
+    gosu \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
@@ -116,13 +117,17 @@ COPY .phpier/docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 # Configure Nginx
 COPY .phpier/docker/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY .phpier/docker/nginx/default.conf /etc/nginx/sites-available/default
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 # Configure Supervisor
 COPY .phpier/docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Copy startup script and make it executable
-COPY .phpier/docker/startup.sh /usr/local/bin/startup.sh
-RUN chmod +x /usr/local/bin/startup.sh
+# Copy entrypoint script and make it executable
+COPY .phpier/docker/entrypoint.sh /usr/local/bin/start
+RUN chmod +x /usr/local/bin/start
+
+# Create phpier user for permission mapping
+RUN useradd -ms /bin/bash -u 1337 phpier
 
 # Create www-data user directories
 RUN mkdir -p /var/www/html && chown www-data:www-data /var/www/html
@@ -130,5 +135,5 @@ RUN mkdir -p /var/www/html && chown www-data:www-data /var/www/html
 # Expose port
 EXPOSE 80
 
-# Use startup script instead of direct supervisor
-CMD ["/usr/local/bin/startup.sh"]
+# Set entrypoint
+ENTRYPOINT ["start"]

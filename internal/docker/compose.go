@@ -55,12 +55,21 @@ func NewProjectComposeManager(projectCfg *config.ProjectConfig, globalCfg *confi
 		return nil, err
 	}
 
+	// Find the project root directory (where docker-compose.yml exists)
+	projectRoot, err := findProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	// Use the project root as working directory (where docker-compose.yml is)
+	workDir := projectRoot
+
 	return &ProjectComposeManager{
 		client:     client,
 		projectCfg: projectCfg,
 		globalCfg:  globalCfg,
 		composeCmd: client.GetDockerComposeCommand(),
-		workDir:    ".phpier",
+		workDir:    workDir,
 	}, nil
 }
 
@@ -119,7 +128,7 @@ func (cm *ProjectComposeManager) buildComposeArgs(command string) []string {
 		args = []string{"compose"}
 	}
 
-	args = append(args, "-f", "docker-compose.yml")
+	args = append(args, "-f", ".phpier.yml")
 	args = append(args, "-p", cm.projectCfg.Name)
 	args = append(args, command)
 
@@ -250,6 +259,32 @@ func (gcm *GlobalComposeManager) runComposeCommand(args ...string) error {
 		return gcm.client.RunCommand("docker", args...)
 	}
 	return gcm.client.RunCommand(gcm.composeCmd, args...)
+}
+
+// findProjectRoot finds the project root directory by looking for .phpier.yml file
+func findProjectRoot() (string, error) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current directory: %w", err)
+	}
+
+	// Walk up the directory tree looking for .phpier.yml
+	dir := currentDir
+	for {
+		configPath := filepath.Join(dir, ".phpier.yml")
+		if _, err := os.Stat(configPath); err == nil {
+			return dir, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached the root directory
+			break
+		}
+		dir = parent
+	}
+
+	return "", fmt.Errorf(".phpier.yml not found in current directory or any parent directory")
 }
 
 // IsGlobalServiceRunning checks if global services (particularly Traefik) are running.

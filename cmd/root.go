@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"os/user"
 
 	"phpier/internal/errors"
 
@@ -93,6 +94,9 @@ func initConfig() {
 		}
 	}
 
+	// Set WWWUSER environment variable if not already set
+	setWWWUserEnvVar()
+
 	// Configure logging
 	if viper.GetBool("verbose") {
 		logrus.SetLevel(logrus.DebugLevel)
@@ -104,6 +108,31 @@ func initConfig() {
 		DisableTimestamp: true,
 		DisableColors:    false,
 	})
+}
+
+// setWWWUserEnvVar sets the WWWUSER environment variable to the current user's UID if not already set
+func setWWWUserEnvVar() {
+	// Check if WWWUSER is already set
+	if wwwuser := os.Getenv("WWWUSER"); wwwuser != "" {
+		logrus.Debugf("WWWUSER already set to: %s", wwwuser)
+		return
+	}
+
+	// Get current user
+	currentUser, err := user.Current()
+	if err != nil {
+		logrus.Debugf("Failed to get current user for WWWUSER: %v", err)
+		return
+	}
+
+	// Convert UID to string and set as environment variable
+	uid := currentUser.Uid
+	if err := os.Setenv("WWWUSER", uid); err != nil {
+		logrus.Debugf("Failed to set WWWUSER environment variable: %v", err)
+		return
+	}
+
+	logrus.Debugf("Set WWWUSER environment variable to: %s", uid)
 }
 
 // SetVersionInfo sets the version information for the CLI

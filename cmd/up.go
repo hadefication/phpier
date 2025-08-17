@@ -69,12 +69,6 @@ func runUp(cmd *cobra.Command, args []string) error {
 		logrus.Infof("⏭️  Skipping global service startup check (--skip-global flag used)")
 	}
 
-	// Regenerate files
-	engine := templates.NewEngine()
-	if err := generator.GenerateProjectFiles(engine, projectCfg, globalCfg); err != nil {
-		return errors.WrapError(errors.ErrorTypeUnknown, "Failed to generate project files", err)
-	}
-
 	// Create Docker Compose manager
 	composeManager, err := docker.NewProjectComposeManager(projectCfg, globalCfg)
 	if err != nil {
@@ -146,5 +140,6 @@ func isProjectInitialized() bool {
 	if _, err := os.Stat(".phpier.yml"); os.IsNotExist(err) {
 		return false
 	}
+	// TODO: Also check if .phpier.yml contains phpier.managed=true label
 	return true
 }

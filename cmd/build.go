@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	noCache bool
+	noCache    bool
+	regenerate bool
 )
 
 // buildCmd represents the build command
@@ -25,10 +26,12 @@ This command will:
 - Build only the app container using the project's Dockerfile.php
 - Support forcing a rebuild with the --no-cache flag
 - Validate that the project is properly initialized
+- Use existing configuration files (preserves customizations)
 
 Examples:
-  phpier build               # Build the app container
-  phpier build --no-cache    # Force a clean rebuild without using cache`,
+  phpier build                    # Build the app container using existing files
+  phpier build --no-cache         # Force a clean rebuild without using cache
+  phpier build --regenerate       # Regenerate config files before building`,
 	RunE: runBuild,
 }
 
@@ -37,6 +40,7 @@ func init() {
 
 	// Flags
 	buildCmd.Flags().BoolVar(&noCache, "no-cache", false, "Do not use cache when building the image")
+	buildCmd.Flags().BoolVar(&regenerate, "regenerate", false, "Regenerate configuration files before building")
 }
 
 func runBuild(cmd *cobra.Command, args []string) error {
@@ -54,10 +58,13 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		return errors.WrapError(errors.ErrorTypeConfigNotFound, "Failed to load global config", err)
 	}
 
-	// Regenerate files to ensure latest Dockerfile
-	engine := templates.NewEngine()
-	if err := generator.GenerateProjectFiles(engine, projectCfg, globalCfg); err != nil {
-		return errors.WrapError(errors.ErrorTypeUnknown, "Failed to generate project files", err)
+	// Regenerate files only if requested
+	if regenerate {
+		logrus.Infof("🔄 Regenerating configuration files...")
+		engine := templates.NewEngine()
+		if err := generator.GenerateProjectFiles(engine, projectCfg, globalCfg); err != nil {
+			return errors.WrapError(errors.ErrorTypeUnknown, "Failed to generate project files", err)
+		}
 	}
 
 	// Create Docker Compose manager

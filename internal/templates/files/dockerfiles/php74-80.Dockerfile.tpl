@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     nginx \
     supervisor \
+    gosu \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
@@ -18,6 +19,7 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libicu-dev \
     libpq-dev \
+    libmagickwand-dev \
     libcurl4-openssl-dev \
     libssl-dev \
     zlib1g-dev \
@@ -61,8 +63,14 @@ RUN docker-php-ext-install \
 RUN pecl install redis igbinary \
     && docker-php-ext-enable redis igbinary
 
-# Install Composer
+# Install Composer (version compatible with PHP version)
+{{- if or (eq .Project.PHP "5.6") (eq .Project.PHP "7.0") (eq .Project.PHP "7.1") (eq .Project.PHP "7.2") (eq .Project.PHP "7.3") }}
+# Use Composer 2.2.x for older PHP versions (last version supporting PHP 7.2+)
 COPY --from=composer:2.2 /usr/bin/composer /usr/bin/composer
+{{- else }}
+# Use latest Composer for modern PHP versions (7.4+)
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+{{- end }}
 
 # Install Node.js (if configured)
 {{- if shouldInstallNode .Project.Node }}
@@ -114,9 +122,12 @@ RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 # Configure Supervisor
 COPY .phpier/docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Copy startup script and make it executable
-COPY .phpier/docker/startup.sh /usr/local/bin/startup.sh
-RUN chmod +x /usr/local/bin/startup.sh
+# Copy entrypoint script and make it executable
+COPY .phpier/docker/entrypoint.sh /usr/local/bin/start
+RUN chmod +x /usr/local/bin/start
+
+# Create phpier user for permission mapping
+RUN useradd -ms /bin/bash -u 1337 phpier
 
 # Create www-data user directories
 RUN mkdir -p /var/www/html && chown www-data:www-data /var/www/html
@@ -124,5 +135,5 @@ RUN mkdir -p /var/www/html && chown www-data:www-data /var/www/html
 # Expose port
 EXPOSE 80
 
-# Use startup script instead of direct supervisor
-CMD ["/usr/local/bin/startup.sh"]
+# Set entrypoint
+ENTRYPOINT ["start"]

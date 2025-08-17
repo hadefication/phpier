@@ -13,14 +13,7 @@ import (
 
 // GenerateProjectFiles generates all necessary files for a new project.
 func GenerateProjectFiles(engine *templates.Engine, projectCfg *config.ProjectConfig, globalCfg *config.GlobalConfig) error {
-	// Generate docker-compose.yml for the project
-	dockerCompose, err := engine.RenderProjectDockerCompose(projectCfg, globalCfg)
-	if err != nil {
-		return fmt.Errorf("failed to render project docker-compose.yml: %w", err)
-	}
-	if err := WriteFile(".phpier/docker-compose.yml", dockerCompose); err != nil {
-		return err
-	}
+	// Note: docker-compose.yml is now generated directly in project root by init command
 
 	// Generate Dockerfile for the project
 	dockerfile, err := engine.RenderPHPDockerfile(projectCfg)
@@ -184,39 +177,80 @@ func CreateProjectDirectories() error {
 		return fmt.Errorf("failed to create logs .gitignore: %w", err)
 	}
 
-	// Create startup script to fix permissions at runtime
-	startupScript := `#!/bin/bash
+
+	// Create entrypoint script for permission mapping
+	entrypointScript := `#!/usr/bin/env bash
+
+# Exit on any error
 set -e
 
-echo "Starting container initialization..."
+echo "Starting entrypoint script..."
 
-# Fix permissions for mounted files
-echo "Fixing permissions..."
-chown -R www-data:www-data /var/www/html
-chmod -R 755 /var/www/html
-
-# Create index.php if it doesn't exist
-if [ ! -f /var/www/html/index.php ]; then
-    echo "Creating default index.php..."
-    echo "<?php phpinfo(); ?>" > /var/www/html/index.php
-    chown www-data:www-data /var/www/html/index.php
+# Handle WWWUSER environment variable for permission mapping
+if [ ! -z "$WWWUSER" ]; then
+    echo "Setting up user mapping for WWWUSER=$WWWUSER"
+    
+    # Check if the UID is already in use by another user
+    if id "$WWWUSER" >/dev/null 2>&1; then
+        echo "UID $WWWUSER already exists, skipping usermod"
+    else
+        # Map the container user to the host user ID
+        echo "Mapping phpier user to UID $WWWUSER"
+        usermod -u $WWWUSER phpier 2>/dev/null || echo "Warning: usermod failed, continuing..."
+    fi
 fi
 
-# Ensure supervisor directories exist with proper permissions
-mkdir -p /var/run/supervisor /var/log/supervisor
-chown -R root:root /var/run/supervisor /var/log/supervisor
+# Initialize Composer directory if it doesn't exist
+if [ ! -d /.composer ]; then
+    echo "Initializing Composer directory..."
+    
+    # Update PHP-FPM pool configuration with correct user
+    for php_conf in /etc/php/*/fpm/pool.d/www.conf; do
+        if [ -f "$php_conf" ]; then
+            echo "Updating PHP-FPM config: $php_conf"
+            sed -i "s/user\ \=.*/user\ \= ${WWWUSER:-phpier}/g" "$php_conf" 2>/dev/null || echo "Warning: Failed to update $php_conf"
+        fi
+    done
 
-# Test nginx configuration
-echo "Testing Nginx configuration..."
-nginx -t
+    # Create Composer directory
+    mkdir -p /.composer
+fi
 
-echo "Starting supervisord..."
-# Use explicit config file and PID file location
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf \
-    --pidfile=/var/run/supervisor/supervisord.pid \
-    --logfile=/var/log/supervisor/supervisord.log`
-	if err := WriteFile(".phpier/docker/startup.sh", startupScript); err != nil {
-		return fmt.Errorf("failed to create startup script: %w", err)
+# Set proper permissions for Composer directory
+echo "Setting Composer directory permissions..."
+chmod -R ugo+rw /.composer 2>/dev/null || echo "Warning: Failed to set Composer permissions"
+
+echo "Entrypoint initialization complete."
+
+# Execute command if provided, otherwise start services
+if [ $# -gt 0 ]; then
+    echo "Executing command: $@"
+    # Use gosu to execute command as the mapped user
+    exec gosu ${WWWUSER:-phpier} "$@"
+else
+    echo "Starting container services..."
+    
+    # Fix permissions for mounted files
+    echo "Fixing permissions..."
+    chown -R www-data:www-data /var/www/html
+    chmod -R 755 /var/www/html
+    
+    # Ensure supervisor directories exist with proper permissions
+    mkdir -p /var/run/supervisor /var/log/supervisor
+    chown -R root:root /var/run/supervisor /var/log/supervisor
+    
+    # Test nginx configuration
+    echo "Testing Nginx configuration..."
+    nginx -t
+    
+    echo "Starting supervisord..."
+    # Use explicit config file and PID file location
+    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf \
+        --pidfile=/var/run/supervisor/supervisord.pid \
+        --logfile=/var/log/supervisor/supervisord.log
+fi`
+	if err := WriteFile(".phpier/docker/entrypoint.sh", entrypointScript); err != nil {
+		return fmt.Errorf("failed to create entrypoint script: %w", err)
 	}
 
 	return nil

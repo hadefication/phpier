@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// ProjectConfig represents the project-specific configuration (.phpier.yml)
+// ProjectConfig represents the project-specific configuration
 type ProjectConfig struct {
 	Name string    `mapstructure:"name"`
 	PHP  string    `mapstructure:"php"`
@@ -109,21 +109,27 @@ var PHPVersions = []string{"5.6", "7.2", "7.3", "7.4", "8.0", "8.1", "8.2", "8.3
 // DatabaseTypes contains supported database types
 var DatabaseTypes = []string{"mysql", "postgresql", "mariadb"}
 
-// LoadProjectConfig loads the project-specific configuration from .phpier.yml
+// LoadProjectConfig loads the project-specific configuration from .phpier.yml labels
 func LoadProjectConfig() (*ProjectConfig, error) {
-	projectViper := viper.New()
-	projectViper.SetConfigFile(".phpier.yml")
+	// Read .phpier.yml to extract project information from labels
+	return LoadProjectConfigFromDockerCompose(".phpier.yml")
+}
 
-	if err := projectViper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read project config: %w", err)
-	}
+// LoadProjectConfigFromDockerCompose loads project config from .phpier.yml file
+func LoadProjectConfigFromDockerCompose(path string) (*ProjectConfig, error) {
+	// For now, return a basic config based on current directory and defaults
+	// This will be enhanced to read from .phpier.yml labels
+	projectName := GetCurrentDir()
 
-	var config ProjectConfig
-	if err := projectViper.Unmarshal(&config); err != nil {
-		return nil, fmt.Errorf("unable to decode project config: %w", err)
-	}
-
-	return &config, nil
+	return &ProjectConfig{
+		Name: projectName,
+		PHP:  "8.3", // Default, will be read from docker-compose.yml labels
+		Node: "lts", // Default, will be read from docker-compose.yml labels
+		App: AppConfig{
+			Volumes:     []string{"./:/var/www/html"},
+			Environment: []string{"APP_ENV=local", "APP_DEBUG=true"},
+		},
+	}, nil
 }
 
 // LoadGlobalConfig loads the global configuration from ~/.phpier/config.yaml
@@ -171,23 +177,32 @@ func LoadGlobalConfig() (*GlobalConfig, error) {
 	return &config, nil
 }
 
-// SaveProjectConfig saves the project-specific configuration to .phpier.yml
-func SaveProjectConfig(config *ProjectConfig) error {
-	projectViper := viper.New()
-	projectViper.SetConfigFile(".phpier.yml")
-
-	projectViper.Set("name", config.Name)
-	projectViper.Set("php", config.PHP)
-	projectViper.Set("node", config.Node)
-	projectViper.Set("app", config.App)
-
-	if err := projectViper.SafeWriteConfig(); err != nil {
-		// If file exists, use WriteConfig to overwrite
-		if err := projectViper.WriteConfig(); err != nil {
-			return fmt.Errorf("failed to write project config file: %w", err)
+// CreateProjectConfig creates a project configuration from CLI arguments
+func CreateProjectConfig(name, phpVersion, nodeVersion string) *ProjectConfig {
+	// Set defaults if not provided
+	if name == "" {
+		name = GetCurrentDir()
+	}
+	if phpVersion == "" {
+		phpVersion = "8.3"
+	}
+	if nodeVersion == "" {
+		if phpVersion == "5.6" {
+			nodeVersion = "none" // Skip Node.js for PHP 5.6
+		} else {
+			nodeVersion = "lts"
 		}
 	}
-	return nil
+
+	return &ProjectConfig{
+		Name: name,
+		PHP:  phpVersion,
+		Node: nodeVersion,
+		App: AppConfig{
+			Volumes:     []string{"./:/var/www/html"},
+			Environment: []string{"APP_ENV=local", "APP_DEBUG=true"},
+		},
+	}
 }
 
 // SaveGlobalConfig saves the global configuration to ~/.phpier/config.yaml

@@ -72,8 +72,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 	logrus.Infof("Using global network: %s", globalCfg.Network)
 
-	// Create project configuration
-	projectCfg := createProjectConfig()
+	// Create project configuration from CLI arguments
+	projectCfg := config.CreateProjectConfig(projectName, phpVersion, "")
 
 	// Create template engine
 	engine := templates.NewEngine()
@@ -83,44 +83,27 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return errors.WrapError(errors.ErrorTypeFileSystemError, "Failed to create project directory structure", err)
 	}
 
-	// Generate project files
+	// Generate project files (now includes docker-compose.yml in root)
 	if err := generator.GenerateProjectFiles(engine, projectCfg, globalCfg); err != nil {
 		return errors.WrapError(errors.ErrorTypeTemplateError, "Failed to generate project configuration files", err)
 	}
 
-	// Save project configuration
-	if err := config.SaveProjectConfig(projectCfg); err != nil {
-		return errors.WrapError(errors.ErrorTypeConfigCorrupted, "Failed to save project configuration file", err)
+	// Generate .phpier.yml in project root (Docker Compose file)
+	dockerCompose, err := engine.RenderProjectDockerCompose(projectCfg, globalCfg)
+	if err != nil {
+		return errors.WrapError(errors.ErrorTypeTemplateError, "Failed to render .phpier.yml", err)
+	}
+	if err := generator.WriteFile(".phpier.yml", dockerCompose); err != nil {
+		return errors.WrapError(errors.ErrorTypeFileSystemError, "Failed to write .phpier.yml", err)
 	}
 
 	logrus.Infof("✅ phpier project initialized successfully!")
-	logrus.Infof("📂 Configuration saved to .phpier.yml")
-	logrus.Infof("🐳 Docker files generated")
+	logrus.Infof("📂 Docker Compose configuration saved to .phpier.yml")
+	logrus.Infof("🐳 Docker files generated in .phpier/")
 	logrus.Infof("🚀 Run 'phpier global up' to start shared services (if not running)")
 	logrus.Infof("🚀 Run 'phpier up' to start your project container")
 
 	return nil
-}
-
-func createProjectConfig() *config.ProjectConfig {
-	cfg := &config.ProjectConfig{}
-
-	// Top-level configuration
-	cfg.Name = projectName
-	cfg.PHP = phpVersion
-
-	// Set Node.js version based on PHP version
-	if phpVersion == "5.6" {
-		cfg.Node = "none" // Skip Node.js for PHP 5.6 due to Debian Stretch compatibility issues
-	} else {
-		cfg.Node = "lts" // Default to latest LTS version for other PHP versions
-	}
-
-	// App configuration
-	cfg.App.Volumes = []string{"../:/var/www/html"}
-	cfg.App.Environment = []string{"APP_ENV=local", "APP_DEBUG=true"}
-
-	return cfg
 }
 
 // getDefaultExtensions returns appropriate extensions for each PHP version
