@@ -55,7 +55,7 @@ const (
 	ErrorTypeProjectDiscoveryFailed ErrorType = "project_discovery_failed"
 
 	// Update errors
-	ErrorTypeUpdateFailed    ErrorType = "update_failed"
+	ErrorTypeUpdateFailed      ErrorType = "update_failed"
 	ErrorTypeUpdateCheckFailed ErrorType = "update_check_failed"
 
 	// Internal errors

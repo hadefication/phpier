@@ -4,7 +4,8 @@
 
 ### Code Style
 - Follow Go standard formatting (gofmt, go vet, golint)
-- **MANDATORY**: Always run `go vet` and `go fmt` for every specification implementation or file changes during non-spec implementations
+- **⚠️ CRITICAL: Always run `go vet` and `go fmt` for every specification implementation or file changes during non-spec implementations**
+- **⚠️ CRITICAL: Code MUST pass both `go fmt` and `go vet` before any commit or PR**
 - Use Cobra command structure and naming conventions
 - Implement proper error handling with Go error types
 - Follow Go naming conventions (CamelCase for exported, camelCase for internal)
@@ -110,7 +111,7 @@ Feature branch workflow with code review
 Check latest main branch, create feature branch
 
 ### Implementation Steps
-1. Write tests 2. Implement feature 3. Run tests 4. Code review
+1. Write tests 2. Implement feature 3. Run tests 4. **⚠️ CRITICAL: Run `go fmt ./...` and `go vet ./...`** 5. Code review
 
 ### Testing Workflow
 Unit tests, integration tests, manual testing
@@ -381,7 +382,8 @@ zeri add-spec "feature-name"
 2. **Plan Implementation**: Break down requirements into actionable tasks
 3. **Implement Features**: Follow the TODO checklist step by step
 4. **Mark Progress**: Update TODOs in real-time during development
-5. **Review and Complete**: Ensure all requirements are met
+5. **⚠️ CRITICAL: Code Quality Check**: Run `go fmt ./...` and `go vet ./...` - MUST pass before completion
+6. **Review and Complete**: Ensure all requirements are met
 
 ### Best Practices
 

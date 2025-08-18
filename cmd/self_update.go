@@ -42,12 +42,12 @@ var (
 
 func init() {
 	rootCmd.AddCommand(selfUpdateCmd)
-	
+
 	// Add flags
 	selfUpdateCmd.Flags().StringVar(&updateVersion, "version", "", "specific version to update to (e.g., v1.2.0)")
 	selfUpdateCmd.Flags().BoolVarP(&checkOnly, "check", "c", false, "check for updates without installing")
 	selfUpdateCmd.Flags().BoolVarP(&forceUpdate, "force", "f", false, "force update without confirmation prompts")
-	
+
 	// Bind flags to viper for consistency
 	viper.BindPFlag("update.version", selfUpdateCmd.Flags().Lookup("version"))
 	viper.BindPFlag("update.check", selfUpdateCmd.Flags().Lookup("check"))
@@ -57,10 +57,10 @@ func init() {
 func runSelfUpdate(cmd *cobra.Command, args []string) error {
 	// Get verbose setting from global flag
 	verbose := viper.GetBool("verbose")
-	
+
 	// Create updater instance
 	u := updater.NewUpdater(buildVersion, verbose)
-	
+
 	// Prepare update options
 	options := updater.UpdateOptions{
 		Version:   updateVersion,
@@ -68,7 +68,7 @@ func runSelfUpdate(cmd *cobra.Command, args []string) error {
 		Force:     forceUpdate,
 		Verbose:   verbose,
 	}
-	
+
 	// Validate version format if specified
 	if updateVersion != "" && !updater.IsValidVersionFormat(updateVersion) {
 		return errors.NewUserError(
@@ -76,7 +76,7 @@ func runSelfUpdate(cmd *cobra.Command, args []string) error {
 			"Version must be in format 'v1.2.3' or '1.2.3'",
 		)
 	}
-	
+
 	// Run update
 	if err := u.Update(options); err != nil {
 		return errors.NewUpdateError(
@@ -84,7 +84,6 @@ func runSelfUpdate(cmd *cobra.Command, args []string) error {
 			err.Error(),
 		)
 	}
-	
+
 	return nil
 }
-
