@@ -94,19 +94,109 @@ phpier up -d              # Start project container
 
 ## 🛠️ Commands
 
+PHPier provides a comprehensive set of commands for managing your PHP development environment.
+
 ### Service Management
+
+#### Global Services
 ```bash
-phpier start                 # Start global services (Traefik, databases)
-phpier stop                  # Stop global services
-phpier up -d                 # Start project container
-phpier down                  # Stop project container
+phpier start                 # Start global services (Traefik, databases, etc.)
+phpier stop                  # Stop global services with safety checks
+phpier global up             # Start global shared services stack
+phpier global down           # Stop global shared services stack
 ```
 
-### Project Setup
+#### Project Services
 ```bash
-phpier init                  # Initialize with PHP 8.3 (default)
-phpier init 7.4              # Initialize with specific PHP version
+phpier up [-d]               # Start project container (detached mode optional)
+phpier down                  # Stop project containers
+phpier build                 # Build/rebuild project's app container
+phpier reload                # Restart project services with optional rebuild
+```
+
+### Project Management
+
+#### Project Setup
+```bash
+phpier init [version]        # Initialize project (default: PHP 8.3)
+phpier init 8.1              # Initialize with specific PHP version
 phpier init --project-name=myapp  # Custom project name
+phpier init 7.4 --project-name=legacy  # Version + custom name
+```
+
+#### Project Information
+```bash
+phpier list                  # List all discovered phpier projects
+phpier services              # Show status of all phpier services
+phpier services --project myapp  # Show services for specific project
+phpier services --type app   # Filter by service type (app, db, cache, proxy, tools)
+phpier services --status running  # Filter by status
+phpier services --json       # Output in JSON format
+phpier logs                  # View logs from project containers
+```
+
+### Database Access
+
+#### Direct Database Connections
+```bash
+phpier mysql                 # Connect to MySQL database shell
+phpier postgres              # Connect to PostgreSQL database shell
+phpier psql                  # Connect to PostgreSQL database shell (same as postgres)
+phpier maria                 # Connect to MariaDB database shell
+phpier mariadb               # Connect to MariaDB database shell (same as maria)
+```
+
+#### Database Commands with Arguments
+```bash
+phpier mysql -e "SHOW TABLES"           # Execute MySQL query
+phpier postgres -c "SELECT version();"  # Execute PostgreSQL query
+phpier maria -e "SHOW DATABASES"        # Execute MariaDB query
+```
+
+### Caching Services
+```bash
+phpier redis                 # Execute Redis CLI commands
+phpier memcached             # Connect to Memcached via telnet
+```
+
+### Database Management
+```bash
+phpier db                    # Manage database services
+```
+
+### Container Access
+
+#### Shell Access
+```bash
+phpier sh                    # Open interactive shell in app container
+```
+
+#### Tool Proxying
+```bash
+# Context-aware tool execution:
+phpier proxy <tool> [args...]           # In project directory
+phpier proxy <app> <tool> [args...]     # From anywhere
+
+# Examples:
+phpier proxy composer install --no-dev  # Run Composer with flags
+phpier proxy php -v                     # Show PHP version
+phpier proxy npm run dev -- --watch     # Run npm with arguments  
+phpier proxy php artisan migrate        # Laravel Artisan commands
+phpier proxy myapp composer require phpunit/phpunit  # Global context
+```
+
+### Utility Commands
+```bash
+phpier version               # Show version information
+phpier help                  # Show help for phpier
+phpier [command] --help      # Show help for specific command
+```
+
+### Global Flags
+```bash
+--config string              # Config file (default: $HOME/.phpier.yml)
+-v, --verbose               # Verbose output
+-h, --help                  # Help for any command
 ```
 
 ### Examples
@@ -134,7 +224,6 @@ See [DEV.md](DEV.md) for development information and contribution guidelines.
 
 - 🐛 **Issues**: [GitHub Issues](https://github.com/your-org/phpier/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/your-org/phpier/discussions)
-- 📖 **Documentation**: [Wiki](https://github.com/your-org/phpier/wiki)
 
 ---
 
