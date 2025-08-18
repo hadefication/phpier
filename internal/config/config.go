@@ -383,14 +383,14 @@ func FindProjectByName(projectName string) (*ProjectInfo, error) {
 
 	// Combine projects, preferring filesystem entries that have valid paths
 	allProjects := make(map[string]ProjectInfo)
-	
+
 	// Add Docker projects first
 	if dockerErr == nil {
 		for _, project := range dockerProjects {
 			allProjects[project.Name] = project
 		}
 	}
-	
+
 	// Add filesystem projects, replacing Docker entries that lack paths
 	if filesystemErr == nil {
 		for _, project := range filesystemProjects {
@@ -479,12 +479,12 @@ func DiscoverProjectsFromDocker() ([]ProjectInfo, error) {
 
 		// Check if this project has containers and get working directory
 		workingDir := ""
-		
+
 		// Try to get container info for this project
 		containerCmd := exec.Command("docker", "ps", "-a",
 			"--filter", fmt.Sprintf("ancestor=%s", imageName),
 			"--format", "{{.Status}}\t{{.Label \"com.docker.compose.working-dir\"}}")
-		
+
 		if containerOutput, err := containerCmd.Output(); err == nil {
 			containerInfo := strings.TrimSpace(string(containerOutput))
 			if containerInfo != "" {
@@ -500,7 +500,7 @@ func DiscoverProjectsFromDocker() ([]ProjectInfo, error) {
 			projectCmd := exec.Command("docker", "ps", "-a",
 				"--filter", fmt.Sprintf("label=com.docker.compose.project=%s", projectName),
 				"--format", "{{.Label \"com.docker.compose.working-dir\"}}")
-			
+
 			if projectOutput, err := projectCmd.Output(); err == nil {
 				workingDir = strings.TrimSpace(string(projectOutput))
 			}

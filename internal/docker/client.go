@@ -299,7 +299,7 @@ func (c *Client) GetRunningPhpierProjects() ([]string, error) {
 // GetAllPhpierProjects returns all phpier projects (running and stopped)
 func (c *Client) GetAllPhpierProjects() ([]ProjectInfo, error) {
 	// Get all containers (running and stopped) with phpier labels
-	output, err := c.RunCommandOutput("docker", "ps", "-a", 
+	output, err := c.RunCommandOutput("docker", "ps", "-a",
 		"--filter", "label=com.docker.compose.project",
 		"--filter", "label=phpier.managed=true",
 		"--format", "{{.Label \"com.docker.compose.project\"}}\t{{.Status}}\t{{.Image}}\t{{.Label \"com.docker.compose.working-dir\"}}")
@@ -379,7 +379,7 @@ func (c *Client) GetPhpierProjectByName(projectName string) (*ProjectInfo, error
 
 // GetPhpierImages returns all phpier-built images (prefixed with phpier-)
 func (c *Client) GetPhpierImages() ([]string, error) {
-	output, err := c.RunCommandOutput("docker", "images", 
+	output, err := c.RunCommandOutput("docker", "images",
 		"--filter", "reference=phpier-*",
 		"--format", "{{.Repository}}:{{.Tag}}")
 	if err != nil {
@@ -406,7 +406,7 @@ func (c *Client) GetPhpierImages() ([]string, error) {
 // GetPhpierProjectsFromImages discovers projects by scanning phpier- prefixed Docker images
 func (c *Client) GetPhpierProjectsFromImages() ([]ProjectInfo, error) {
 	// Get all phpier- prefixed images
-	output, err := c.RunCommandOutput("docker", "images", 
+	output, err := c.RunCommandOutput("docker", "images",
 		"--filter", "reference=phpier-*",
 		"--format", "{{.Repository}}:{{.Tag}}")
 	if err != nil {
@@ -439,12 +439,12 @@ func (c *Client) GetPhpierProjectsFromImages() ([]ProjectInfo, error) {
 		// Check if this project has running containers
 		status := "stopped"
 		workingDir := ""
-		
+
 		// Try to get container info for this project
 		containerOutput, err := c.RunCommandOutput("docker", "ps", "-a",
 			"--filter", fmt.Sprintf("ancestor=%s", imageName),
 			"--format", "{{.Status}}\t{{.Label \"com.docker.compose.working-dir\"}}")
-		
+
 		if err == nil && strings.TrimSpace(containerOutput) != "" {
 			parts := strings.Split(strings.TrimSpace(containerOutput), "\t")
 			if len(parts) > 0 {
@@ -454,7 +454,7 @@ func (c *Client) GetPhpierProjectsFromImages() ([]ProjectInfo, error) {
 				} else if strings.Contains(containerStatus, "Created") {
 					status = "created"
 				}
-				
+
 				if len(parts) > 1 {
 					workingDir = strings.TrimSpace(parts[1])
 				}
@@ -481,7 +481,7 @@ func (c *Client) GetPhpierProjectsFromImages() ([]ProjectInfo, error) {
 // GetProjectWorkingDirectory attempts to find the working directory for a project
 func (c *Client) GetProjectWorkingDirectory(projectName string) (string, error) {
 	// Try to get working directory from running container
-	output, err := c.RunCommandOutput("docker", "ps", 
+	output, err := c.RunCommandOutput("docker", "ps",
 		"--filter", fmt.Sprintf("label=com.docker.compose.project=%s", projectName),
 		"--format", "{{.Label \"com.docker.compose.working-dir\"}}")
 	if err != nil {

@@ -163,6 +163,64 @@ func (c *Client) GetToolVersion(ctx context.Context, tool string, versionFlag st
 	return strings.TrimSpace(output), nil
 }
 
+// ExecuteGlobalServiceCommand executes a command in a global service container
+func (c *Client) ExecuteGlobalServiceCommand(ctx context.Context, serviceName string, proxyCmd *ProxyCommand) (int, error) {
+	// Global service containers are named phpier-<serviceName>
+	containerName := fmt.Sprintf("phpier-%s", serviceName)
+
+	logrus.Debugf("Looking for global service container: %s", containerName)
+
+	// Check if container is running
+	isRunning, err := c.IsContainerRunning(ctx, containerName)
+	if err != nil {
+		return 1, fmt.Errorf("failed to check %s container status: %w", serviceName, err)
+	}
+
+	if !isRunning {
+		return 1, fmt.Errorf("%s service is not running\n\nTry running 'phpier global up' to start the global services", strings.Title(serviceName))
+	}
+
+	// Prepare command
+	command := []string{proxyCmd.Command}
+	command = append(command, proxyCmd.Args...)
+
+	// Set default values for global services
+	user := proxyCmd.User
+	if user == "" {
+		user = "" // Use container default user for global services
+	}
+
+	workingDir := proxyCmd.WorkingDir
+	if workingDir == "" {
+		workingDir = "" // Use container default working directory
+	}
+
+	// Determine if command needs interactivity
+	needsInteractive := proxyCmd.Interactive || isInteractiveCommand(proxyCmd.Command, proxyCmd.Args)
+
+	// Set up execution config based on interactivity
+	execConfig := &ExecConfig{
+		Container:    containerName,
+		Command:      command,
+		WorkingDir:   workingDir,
+		User:         user,
+		Tty:          needsInteractive,
+		AttachStdout: true,
+		AttachStderr: true,
+		AttachStdin:  needsInteractive,
+	}
+
+	logrus.Debugf("Executing '%s %s' in global container %s", proxyCmd.Command, strings.Join(proxyCmd.Args, " "), containerName)
+
+	// Execute the command
+	exitCode, err := c.ExecInteractive(ctx, execConfig)
+	if err != nil {
+		return 1, fmt.Errorf("failed to execute %s command: %w", proxyCmd.Name, err)
+	}
+
+	return exitCode, nil
+}
+
 // isInteractiveCommand determines if a command needs interactive TTY based on command and args
 func isInteractiveCommand(command string, args []string) bool {
 	// Commands that typically need interactive mode
