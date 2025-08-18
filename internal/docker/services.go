@@ -127,6 +127,22 @@ func (c *Client) getContainersByFilter(ctx context.Context, filter *ServicesFilt
 
 // isPhpierContainer checks if a container is phpier-related
 func (c *Client) isPhpierContainer(containerName string) bool {
+	// First, exclude known non-phpier patterns
+	excludePatterns := []string{
+		`^not-phpier-.*`,   // Explicitly not phpier
+		`^wordpress-.*`,    // WordPress containers
+		`^laravel-.*`,      // Laravel containers
+		`^drupal-.*`,       // Drupal containers
+		`^magento-.*`,      // Magento containers
+	}
+
+	for _, pattern := range excludePatterns {
+		matched, err := regexp.MatchString(pattern, containerName)
+		if err == nil && matched {
+			return false
+		}
+	}
+
 	phpierPatterns := []string{
 		`^phpier-.*`,            // Global phpier containers
 		`.*-app-\d+$`,           // Project app containers
@@ -138,13 +154,6 @@ func (c *Client) isPhpierContainer(containerName string) bool {
 		`.*-memcached-\d+$`,     // Project memcached containers
 		`.*-phpmyadmin-\d+$`,    // Project phpmyadmin containers
 		`.*-mailpit-\d+$`,       // Project mailpit containers
-		`phpier-traefik-\d+$`,   // Traefik container
-		`phpier-redis-\d+$`,     // Global redis
-		`phpier-valkey-\d+$`,    // Global valkey
-		`phpier-memcached-\d+$`, // Global memcached
-		`phpier-mysql-\d+$`,     // Global mysql
-		`phpier-postgres-\d+$`,  // Global postgres
-		`phpier-mariadb-\d+$`,   // Global mariadb
 	}
 
 	for _, pattern := range phpierPatterns {

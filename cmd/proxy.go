@@ -12,8 +12,8 @@ import (
 
 // proxyCmd represents the unified proxy command
 var proxyCmd = &cobra.Command{
-	Use:                "proxy [app] <tool> [args...]",
-	Short:              "Execute tools in app containers with context-aware behavior",
+	Use:   "proxy [app] <tool> [args...]",
+	Short: "Execute tools in app containers with context-aware behavior",
 	Long: `Execute tools in app containers with context-aware behavior.
 All flags and arguments are automatically forwarded to the target tool.
 

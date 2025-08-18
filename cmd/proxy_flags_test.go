@@ -8,12 +8,12 @@ import (
 
 func TestProxyFlagForwarding(t *testing.T) {
 	tests := []struct {
-		name          string
-		args          []string
-		isProject     bool
-		expectedTool  string
-		expectedArgs  []string
-		description   string
+		name         string
+		args         []string
+		isProject    bool
+		expectedTool string
+		expectedArgs []string
+		description  string
 	}{
 		{
 			name:         "project context - composer with flags",
@@ -84,19 +84,19 @@ func TestProxyFlagForwarding(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a temporary directory for project tests
-			var tmpDir string
 			var cleanup func()
-			
+
 			if tt.isProject {
-				tmpDir, cleanup = createTempProject(t)
+				_, cleanup = createTempProject(t)
 				defer cleanup()
 			} else {
-				tmpDir, cleanup = createTempDir(t)
+				_, cleanup = createTempDir(t)
 				defer cleanup()
 			}
 
 			// Parse arguments using the same logic as runProxy
-			var appName, toolName string
+			var toolName string
+			_ = toolName // Will be used in actual parsing logic
 			var toolArgs []string
 
 			// Simulate the context detection (using the temp directory setup)
@@ -104,10 +104,9 @@ func TestProxyFlagForwarding(t *testing.T) {
 				// Project context: proxy <tool> [args...]
 				toolName = tt.args[0]
 				toolArgs = tt.args[1:]
-				appName = ""
 			} else {
 				// Global context: proxy <app> <tool> [args...]
-				appName = tt.args[0]
+				_ = tt.args[0] // appName would be used in actual implementation
 				toolName = tt.args[1]
 				toolArgs = tt.args[2:]
 			}
@@ -115,10 +114,10 @@ func TestProxyFlagForwarding(t *testing.T) {
 			// Verify flag forwarding
 			assert.Equal(t, tt.expectedTool, toolName, "tool name should match")
 			assert.Equal(t, tt.expectedArgs, toolArgs, "all flags and arguments should be forwarded: %s", tt.description)
-			
+
 			// Verify that no flags were lost or modified
 			assert.Len(t, toolArgs, len(tt.expectedArgs), "number of forwarded arguments should match expected")
-			
+
 			// Check that specific flag patterns are preserved
 			for i, expectedArg := range tt.expectedArgs {
 				if i < len(toolArgs) {
@@ -141,7 +140,7 @@ func TestProxyComplexFlagScenarios(t *testing.T) {
 			expected: []string{"-r", `echo "Hello World";`, "--define", "memory_limit=256M"},
 		},
 		{
-			name:     "flags with spaces in values", 
+			name:     "flags with spaces in values",
 			args:     []string{"composer", "create-project", "--prefer-dist", "laravel/laravel", "my project"},
 			expected: []string{"create-project", "--prefer-dist", "laravel/laravel", "my project"},
 		},
@@ -155,7 +154,7 @@ func TestProxyComplexFlagScenarios(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Simulate project context parsing
-			toolName := tt.args[0]
+			_ = tt.args[0] // toolName would be used in actual implementation
 			toolArgs := tt.args[1:]
 
 			assert.Equal(t, tt.expected, toolArgs, "complex flag scenarios should be preserved exactly")

@@ -9,14 +9,14 @@ import (
 
 func TestRunProxy_ArgumentParsing(t *testing.T) {
 	tests := []struct {
-		name            string
-		args            []string
-		isProject       bool
-		expectedApp     string
-		expectedTool    string
-		expectedArgs    []string
-		expectError     bool
-		errorContains   string
+		name          string
+		args          []string
+		isProject     bool
+		expectedApp   string
+		expectedTool  string
+		expectedArgs  []string
+		expectError   bool
+		errorContains string
 	}{
 		{
 			name:         "project context - composer install",
@@ -73,22 +73,22 @@ func TestRunProxy_ArgumentParsing(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:          "global context - myapp composer install",
-			args:          []string{"myapp", "composer", "install"},
-			isProject:     false,
-			expectedApp:   "myapp",
-			expectedTool:  "composer",
-			expectedArgs:  []string{"install"},
-			expectError:   false,
+			name:         "global context - myapp composer install",
+			args:         []string{"myapp", "composer", "install"},
+			isProject:    false,
+			expectedApp:  "myapp",
+			expectedTool: "composer",
+			expectedArgs: []string{"install"},
+			expectError:  false,
 		},
 		{
-			name:          "global context - testproject php artisan migrate with flags",
-			args:          []string{"testproject", "php", "artisan", "migrate", "--force", "--seed"},
-			isProject:     false,
-			expectedApp:   "testproject",
-			expectedTool:  "php",
-			expectedArgs:  []string{"artisan", "migrate", "--force", "--seed"},
-			expectError:   false,
+			name:         "global context - testproject php artisan migrate with flags",
+			args:         []string{"testproject", "php", "artisan", "migrate", "--force", "--seed"},
+			isProject:    false,
+			expectedApp:  "testproject",
+			expectedTool: "php",
+			expectedArgs: []string{"artisan", "migrate", "--force", "--seed"},
+			expectError:  false,
 		},
 		{
 			name:          "global context - insufficient args",
@@ -117,7 +117,7 @@ func TestRunProxy_ArgumentParsing(t *testing.T) {
 			// Create a temporary directory for project tests
 			var tmpDir string
 			var cleanup func()
-			
+
 			if tt.isProject {
 				tmpDir, cleanup = createTempProject(t)
 				defer cleanup()
@@ -221,14 +221,14 @@ func TestIsPhpierProjectDetection(t *testing.T) {
 // Helper function to create a temporary directory with .phpier.yml
 func createTempProject(t *testing.T) (string, func()) {
 	tmpDir, cleanup := createTempDir(t)
-	
+
 	// Create .phpier.yml file
 	configContent := `name: test-project
 php_version: "8.3"`
-	
+
 	err := os.WriteFile(tmpDir+"/.phpier.yml", []byte(configContent), 0644)
 	assert.NoError(t, err)
-	
+
 	return tmpDir, cleanup
 }
 
@@ -236,10 +236,10 @@ php_version: "8.3"`
 func createTempDir(t *testing.T) (string, func()) {
 	tmpDir, err := os.MkdirTemp("", "phpier-proxy-test-")
 	assert.NoError(t, err)
-	
+
 	cleanup := func() {
 		os.RemoveAll(tmpDir)
 	}
-	
+
 	return tmpDir, cleanup
 }
