@@ -15,7 +15,7 @@ func TestUpCommand(t *testing.T) {
 	// Check if command is properly registered
 	foundCmd, _, err := cmd.Find([]string{"up"})
 	assert.NoError(t, err)
-	assert.Equal(t, "up", foundCmd.Use)
+	assert.Equal(t, "up [app]", foundCmd.Use)
 }
 
 func TestUpCommandFlags(t *testing.T) {
@@ -38,7 +38,7 @@ func TestUpCommandFlags(t *testing.T) {
 }
 
 func TestUpCommandDescription(t *testing.T) {
-	assert.Equal(t, "up", upCmd.Use)
+	assert.Equal(t, "up [app]", upCmd.Use)
 	assert.Equal(t, "Start the project's app container", upCmd.Short)
 	assert.Contains(t, upCmd.Long, "Start the project's app container")
 	assert.Contains(t, upCmd.Long, "global services")

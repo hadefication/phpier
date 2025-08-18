@@ -15,7 +15,7 @@ func TestDownCommand(t *testing.T) {
 	// Check if command is properly registered
 	foundCmd, _, err := cmd.Find([]string{"down"})
 	assert.NoError(t, err)
-	assert.Equal(t, "down", foundCmd.Use)
+	assert.Equal(t, "down [app]", foundCmd.Use)
 }
 
 func TestDownCommandFlags(t *testing.T) {
@@ -39,7 +39,7 @@ func TestDownCommandFlags(t *testing.T) {
 }
 
 func TestDownCommandDescription(t *testing.T) {
-	assert.Equal(t, "down", downCmd.Use)
+	assert.Equal(t, "down [app]", downCmd.Use)
 	assert.Equal(t, "Stop and remove project containers and services", downCmd.Short)
 	assert.Contains(t, downCmd.Long, "Stop and remove project containers and services")
 	assert.Contains(t, downCmd.Long, "--stop-global")

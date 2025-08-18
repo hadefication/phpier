@@ -129,11 +129,11 @@ func (c *Client) getContainersByFilter(ctx context.Context, filter *ServicesFilt
 func (c *Client) isPhpierContainer(containerName string) bool {
 	// First, exclude known non-phpier patterns
 	excludePatterns := []string{
-		`^not-phpier-.*`,   // Explicitly not phpier
-		`^wordpress-.*`,    // WordPress containers
-		`^laravel-.*`,      // Laravel containers
-		`^drupal-.*`,       // Drupal containers
-		`^magento-.*`,      // Magento containers
+		`^not-phpier-.*`, // Explicitly not phpier
+		`^wordpress-.*`,  // WordPress containers
+		`^laravel-.*`,    // Laravel containers
+		`^drupal-.*`,     // Drupal containers
+		`^magento-.*`,    // Magento containers
 	}
 
 	for _, pattern := range excludePatterns {
@@ -144,16 +144,16 @@ func (c *Client) isPhpierContainer(containerName string) bool {
 	}
 
 	phpierPatterns := []string{
-		`^phpier-.*`,            // Global phpier containers
-		`.*-app-\d+$`,           // Project app containers
-		`.*-mysql-\d+$`,         // Project mysql containers
-		`.*-postgres-\d+$`,      // Project postgres containers
-		`.*-mariadb-\d+$`,       // Project mariadb containers
-		`.*-redis-\d+$`,         // Project redis containers
-		`.*-valkey-\d+$`,        // Project valkey containers
-		`.*-memcached-\d+$`,     // Project memcached containers
-		`.*-phpmyadmin-\d+$`,    // Project phpmyadmin containers
-		`.*-mailpit-\d+$`,       // Project mailpit containers
+		`^phpier-.*`,         // Global phpier containers
+		`.*-app-\d+$`,        // Project app containers
+		`.*-mysql-\d+$`,      // Project mysql containers
+		`.*-postgres-\d+$`,   // Project postgres containers
+		`.*-mariadb-\d+$`,    // Project mariadb containers
+		`.*-redis-\d+$`,      // Project redis containers
+		`.*-valkey-\d+$`,     // Project valkey containers
+		`.*-memcached-\d+$`,  // Project memcached containers
+		`.*-phpmyadmin-\d+$`, // Project phpmyadmin containers
+		`.*-mailpit-\d+$`,    // Project mailpit containers
 	}
 
 	for _, pattern := range phpierPatterns {
