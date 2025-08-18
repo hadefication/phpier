@@ -6,7 +6,7 @@ import (
 
 // Build information (set via ldflags during build)
 var (
-	version = "dev"
+	version = "v1.0.1"
 	commit  = "unknown"
 	date    = "unknown"
 )
