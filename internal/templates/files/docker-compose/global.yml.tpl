@@ -26,6 +26,7 @@ services:
     image: mysql:{{.Global.Services.Databases.MySQL.Version}}
     container_name: phpier-mysql
     restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: {{.Global.Services.Databases.MySQL.Password}}
       MYSQL_DATABASE: {{.Global.Services.Databases.MySQL.Database}}
@@ -71,6 +72,7 @@ services:
     image: mariadb:{{.Global.Services.Databases.MariaDB.Version}}
     container_name: phpier-mariadb
     restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: {{.Global.Services.Databases.MariaDB.Password}}
       MYSQL_DATABASE: {{.Global.Services.Databases.MariaDB.Database}}

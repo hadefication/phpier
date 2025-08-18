@@ -85,10 +85,10 @@ func runMySQL(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		// Execute SQL query from arguments
 		query := strings.Join(args, " ")
-		mysqlCommand = []string{"mysql", "-u", mysqlConfig.Username, fmt.Sprintf("-p%s", mysqlConfig.Password), "-e", query}
+		mysqlCommand = []string{"mysql", "-u", "root", fmt.Sprintf("-p%s", mysqlConfig.Password), "-e", query}
 	} else {
 		// Interactive MySQL shell
-		mysqlCommand = []string{"mysql", "-u", mysqlConfig.Username, fmt.Sprintf("-p%s", mysqlConfig.Password)}
+		mysqlCommand = []string{"mysql", "-u", "root", fmt.Sprintf("-p%s", mysqlConfig.Password)}
 	}
 
 	// Set up execution config

@@ -179,21 +179,65 @@ phpier reload
 
 ## Database Access
 
-### MySQL/MariaDB
+PHPier provides multiple database options with both external client access and web-based administration interfaces.
+
+### MySQL
+**External Client Access (Sequel Ace, TablePlus, etc.)**
 - **Host**: `localhost`
 - **Port**: `3306`
-- **Database**: `<project-name>`
-- **Username**: `<project-name>`
-- **Password**: `<project-name>`
-- **Admin**: PHPMyAdmin at `http://localhost:8080`
+- **Username**: `root`
+- **Password**: `phpier`
+- **Database**: `phpier` (default)
+
+**Alternative User Access**
+- **Username**: `phpier`
+- **Password**: `phpier`
+- **Database**: `phpier`
+
+**Web Interface**
+- **PHPMyAdmin**: `http://phpmyadmin.localhost` (with Traefik) or `http://localhost:8080` (without Traefik)
+- **Adminer**: `http://phpier-adminer.localhost` (global service)
+
+### MariaDB
+**External Client Access (Sequel Ace, TablePlus, etc.)**
+- **Host**: `localhost`
+- **Port**: `3307` (note: different port to avoid MySQL conflicts)
+- **Username**: `root`
+- **Password**: `phpier`
+- **Database**: `phpier` (default)
+
+**Alternative User Access**
+- **Username**: `phpier`
+- **Password**: `phpier`
+- **Database**: `phpier`
+
+**Web Interface**
+- **Adminer**: `http://phpier-adminer.localhost` (supports both MySQL and MariaDB)
 
 ### PostgreSQL
+**External Client Access (pgAdmin, TablePlus, etc.)**
 - **Host**: `localhost`
 - **Port**: `5432`
-- **Database**: `<project-name>`
-- **Username**: `<project-name>`
-- **Password**: `<project-name>`
-- **Admin**: pgAdmin at `http://localhost:8081`
+- **Username**: `phpier`
+- **Password**: `phpier`
+- **Database**: `phpier`
+
+**Web Interface**
+- **pgAdmin**: `http://pgadmin.localhost` (when enabled in global config)
+- **Login**: `admin@example.com` / `admin`
+
+### Database Authentication Notes
+
+**MySQL 8.0+ Authentication Fix**
+PHPier automatically configures MySQL and MariaDB to use `mysql_native_password` authentication plugin for better client compatibility. This resolves common connection issues with desktop database clients.
+
+**Connection Troubleshooting**
+- Ensure phpier global services are running: `phpier global up`
+- For authentication errors, try stopping and restarting services: `phpier global down && phpier global up`
+- If using custom credentials, check your global configuration: `~/.phpier/config.yaml`
+
+**Creating New Databases**
+Use the `root` user credentials to create additional databases through external clients or web interfaces. The `phpier` user has limited privileges by default.
 
 ## Email Testing
 

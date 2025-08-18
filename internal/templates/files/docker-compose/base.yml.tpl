@@ -35,6 +35,7 @@ services:
     image: mysql:{{.Config.Services.Database.Version}}
     container_name: {{.Config.Docker.ProjectName}}-mysql
     restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: {{.Config.Services.Database.Password}}
       MYSQL_DATABASE: {{.Config.Services.Database.Database}}
@@ -70,6 +71,7 @@ services:
     image: mariadb:{{.Config.Services.Database.Version}}
     container_name: {{.Config.Docker.ProjectName}}-mariadb
     restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: {{.Config.Services.Database.Password}}
       MYSQL_DATABASE: {{.Config.Services.Database.Database}}
