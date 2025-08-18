@@ -105,7 +105,7 @@ detect_platform() {
 }
 
 get_latest_version() {
-    log "Fetching latest release information..."
+    log "Fetching latest release information..." >&2
     
     local latest_url="https://api.github.com/repos/${REPO}/releases/latest"
     local version
@@ -169,16 +169,16 @@ download_binary() {
     download_url="https://github.com/${REPO}/releases/download/${version}/${binary_name}"
     local binary_path="${temp_dir}/${binary_name}"
     
-    log "Downloading ${binary_name}..."
-    log "URL: $download_url"
+    log "Downloading ${binary_name}..." >&2
+    log "URL: $download_url" >&2
     
     # Download binary
     if command -v curl >/dev/null 2>&1; then
-        if ! curl -L -o "$binary_path" "$download_url"; then
+        if ! curl -L -o "$binary_path" "$download_url" >&2; then
             error "Failed to download binary from $download_url"
         fi
     elif command -v wget >/dev/null 2>&1; then
-        if ! wget -O "$binary_path" "$download_url"; then
+        if ! wget -O "$binary_path" "$download_url" >&2; then
             error "Failed to download binary from $download_url"
         fi
     else
@@ -192,7 +192,7 @@ download_binary() {
     # Verify download
     local size
     size=$(ls -lh "$binary_path" | awk '{print $5}' 2>/dev/null)
-    log "Downloaded $binary_name ($size) ✓"
+    log "Downloaded $binary_name ($size) ✓" >&2
     
     echo "$binary_path"
 }
@@ -257,7 +257,7 @@ install_binary() {
     local binary_path="$1"
     local install_dir="$2"
     
-    log "Installing phpier to $install_dir..."
+    log "Installing phpier to $install_dir..." >&2
     
     # Create install directory
     mkdir -p "$install_dir"
