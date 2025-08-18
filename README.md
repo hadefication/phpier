@@ -23,14 +23,24 @@ curl -sSL https://raw.githubusercontent.com/hadefication/phpier/main/scripts/ins
 
 ### Alternative Installation Methods
 
-**Specific Version:**
+**Install Specific Version:**
 ```bash
 curl -sSL https://raw.githubusercontent.com/hadefication/phpier/main/scripts/install.sh | bash -s -- -v v1.0.0
 ```
 
-**Custom Directory:**
+**Install to Custom Directory:**
 ```bash
 curl -sSL https://raw.githubusercontent.com/hadefication/phpier/main/scripts/install.sh | bash -s -- -d /usr/local/bin
+```
+
+**Install with Both Options:**
+```bash
+curl -sSL https://raw.githubusercontent.com/hadefication/phpier/main/scripts/install.sh | bash -s -- -v v1.0.0 -d /usr/local/bin
+```
+
+**Force Installation (Skip Existing Check):**
+```bash
+curl -sSL https://raw.githubusercontent.com/hadefication/phpier/main/scripts/install.sh | bash -s -- --force
 ```
 
 **Build from Source:**

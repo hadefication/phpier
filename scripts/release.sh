@@ -375,19 +375,19 @@ update_version_files() {
     # Update version in main.go (if it exists)
     if [[ -f "main.go" ]]; then
         # Look for version variable and update it
-        if grep -q 'var version' main.go; then
-            sed -i.bak "s/var version = \".*\"/var version = \"$version\"/" main.go
+        if grep -q 'version = "' main.go; then
+            sed -i.bak "s/version = \".*\"/version = \"$version\"/" main.go
             rm -f main.go.bak
             log "Updated version in main.go ✓"
         fi
     fi
     
-    # Update version in cmd/version.go (if it exists)
-    if [[ -f "cmd/version.go" ]]; then
-        if grep -q 'Version.*=' cmd/version.go; then
-            sed -i.bak "s/Version.*=.*/Version = \"$version\"/" cmd/version.go
-            rm -f cmd/version.go.bak
-            log "Updated version in cmd/version.go ✓"
+    # Update buildVersion in cmd/root.go (if it exists)
+    if [[ -f "cmd/root.go" ]]; then
+        if grep -q 'buildVersion = "' cmd/root.go; then
+            sed -i.bak "s/buildVersion = \".*\"/buildVersion = \"$version\"/" cmd/root.go
+            rm -f cmd/root.go.bak
+            log "Updated buildVersion in cmd/root.go ✓"
         fi
     fi
     
