@@ -3,9 +3,12 @@ package config
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
+	"phpier/internal/errors"
 )
 
 // ProjectConfig represents the project-specific configuration
@@ -364,4 +367,279 @@ func hasNewDatabaseConfig(config *GlobalConfig) bool {
 	return config.Services.Databases.MySQL.Enabled ||
 		config.Services.Databases.PostgreSQL.Enabled ||
 		config.Services.Databases.MariaDB.Enabled
+}
+
+// ProjectInfo contains information about a discovered phpier project
+type ProjectInfo struct {
+	Name string
+	Path string
+}
+
+// FindProjectByName searches for a phpier project by name using Docker and filesystem discovery
+func FindProjectByName(projectName string) (*ProjectInfo, error) {
+	// Get projects from both sources
+	dockerProjects, dockerErr := DiscoverProjectsFromDocker()
+	filesystemProjects, filesystemErr := DiscoverProjectsFromFilesystem()
+
+	// Combine projects, preferring filesystem entries that have valid paths
+	allProjects := make(map[string]ProjectInfo)
+	
+	// Add Docker projects first
+	if dockerErr == nil {
+		for _, project := range dockerProjects {
+			allProjects[project.Name] = project
+		}
+	}
+	
+	// Add filesystem projects, replacing Docker entries that lack paths
+	if filesystemErr == nil {
+		for _, project := range filesystemProjects {
+			if existing, exists := allProjects[project.Name]; !exists || existing.Path == "" {
+				allProjects[project.Name] = project
+			}
+		}
+	}
+
+	// Convert back to slice for findProjectInList
+	var combinedProjects []ProjectInfo
+	for _, project := range allProjects {
+		combinedProjects = append(combinedProjects, project)
+	}
+
+	if len(combinedProjects) == 0 {
+		if dockerErr != nil && filesystemErr != nil {
+			return nil, fmt.Errorf("failed to discover projects: docker error: %v, filesystem error: %v", dockerErr, filesystemErr)
+		}
+		return nil, errors.NewProjectNotFoundError(projectName)
+	}
+
+	return findProjectInList(projectName, combinedProjects)
+}
+
+// findProjectInList searches for a project by name in a given list of projects
+func findProjectInList(projectName string, projects []ProjectInfo) (*ProjectInfo, error) {
+	var matches []ProjectInfo
+	for _, project := range projects {
+		if project.Name == projectName {
+			matches = append(matches, project)
+		}
+	}
+
+	if len(matches) == 0 {
+		return nil, errors.NewProjectNotFoundError(projectName)
+	}
+
+	if len(matches) > 1 {
+		var paths []string
+		for _, match := range matches {
+			paths = append(paths, match.Path)
+		}
+		return nil, errors.NewMultipleProjectsFoundError(projectName, paths)
+	}
+
+	return &matches[0], nil
+}
+
+// DiscoverProjectsFromDocker discovers phpier projects by scanning Docker images with phpier- prefix
+func DiscoverProjectsFromDocker() ([]ProjectInfo, error) {
+	// Check if Docker is available
+	if _, err := exec.LookPath("docker"); err != nil {
+		return []ProjectInfo{}, nil // Docker not available, return empty list
+	}
+
+	// Get all phpier- prefixed images
+	cmd := exec.Command("docker", "images", "--filter", "reference=phpier-*", "--format", "{{.Repository}}:{{.Tag}}")
+	output, err := cmd.Output()
+	if err != nil {
+		return []ProjectInfo{}, nil // Docker command failed, return empty list
+	}
+
+	if strings.TrimSpace(string(output)) == "" {
+		return []ProjectInfo{}, nil
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	projectMap := make(map[string]ProjectInfo)
+
+	for _, line := range lines {
+		imageName := strings.TrimSpace(line)
+		if imageName == "" || !strings.HasPrefix(imageName, "phpier-") {
+			continue
+		}
+
+		// Extract project name from image name (remove phpier- prefix and :tag)
+		projectName := strings.TrimPrefix(imageName, "phpier-")
+		if colonIndex := strings.Index(projectName, ":"); colonIndex != -1 {
+			projectName = projectName[:colonIndex]
+		}
+
+		if projectName == "" {
+			continue
+		}
+
+		// Check if this project has containers and get working directory
+		workingDir := ""
+		
+		// Try to get container info for this project
+		containerCmd := exec.Command("docker", "ps", "-a",
+			"--filter", fmt.Sprintf("ancestor=%s", imageName),
+			"--format", "{{.Status}}\t{{.Label \"com.docker.compose.working-dir\"}}")
+		
+		if containerOutput, err := containerCmd.Output(); err == nil {
+			containerInfo := strings.TrimSpace(string(containerOutput))
+			if containerInfo != "" {
+				parts := strings.Split(containerInfo, "\t")
+				if len(parts) > 1 {
+					workingDir = strings.TrimSpace(parts[1])
+				}
+			}
+		}
+
+		// Try to find working directory from Docker Compose project label if not found
+		if workingDir == "" {
+			projectCmd := exec.Command("docker", "ps", "-a",
+				"--filter", fmt.Sprintf("label=com.docker.compose.project=%s", projectName),
+				"--format", "{{.Label \"com.docker.compose.working-dir\"}}")
+			
+			if projectOutput, err := projectCmd.Output(); err == nil {
+				workingDir = strings.TrimSpace(string(projectOutput))
+			}
+		}
+
+		projectMap[projectName] = ProjectInfo{
+			Name: projectName,
+			Path: workingDir,
+		}
+	}
+
+	// Convert map to slice
+	var result []ProjectInfo
+	for _, project := range projectMap {
+		result = append(result, project)
+	}
+
+	return result, nil
+}
+
+// DiscoverProjectsFromFilesystem scans the filesystem for phpier projects
+func DiscoverProjectsFromFilesystem() ([]ProjectInfo, error) {
+	return DiscoverProjects()
+}
+
+// DiscoverProjects scans the filesystem for phpier projects (legacy function)
+func DiscoverProjects() ([]ProjectInfo, error) {
+	var projects []ProjectInfo
+
+	// Common search paths
+	searchPaths := []string{
+		".", // Current directory
+	}
+
+	// Add user home directory subdirectories if accessible
+	if home, err := os.UserHomeDir(); err == nil {
+		commonDirs := []string{
+			filepath.Join(home, "projects"),
+			filepath.Join(home, "code"),
+			filepath.Join(home, "dev"),
+			filepath.Join(home, "Sites"),
+			filepath.Join(home, "workspace"),
+			filepath.Join(home, "Development"),
+		}
+		searchPaths = append(searchPaths, commonDirs...)
+	}
+
+	// Add common development directories
+	commonPaths := []string{
+		"/var/www",
+		"/srv",
+		"/opt/projects",
+	}
+	searchPaths = append(searchPaths, commonPaths...)
+
+	for _, searchPath := range searchPaths {
+		if _, err := os.Stat(searchPath); os.IsNotExist(err) {
+			continue
+		}
+
+		// Search for .phpier.yml files recursively (up to 3 levels deep)
+		err := scanForProjects(searchPath, 0, 3, &projects)
+		if err != nil {
+			// Continue searching other paths even if one fails
+			continue
+		}
+	}
+
+	return projects, nil
+}
+
+// scanForProjects recursively scans for .phpier.yml files
+func scanForProjects(dir string, currentDepth, maxDepth int, projects *[]ProjectInfo) error {
+	if currentDepth > maxDepth {
+		return nil
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	// Check if current directory has .phpier.yml
+	for _, entry := range entries {
+		if entry.Name() == ".phpier.yml" {
+			projectInfo, err := extractProjectInfo(dir)
+			if err != nil {
+				continue // Skip invalid projects
+			}
+			*projects = append(*projects, *projectInfo)
+			break // Found project file, don't recurse further in this directory
+		}
+	}
+
+	// If no .phpier.yml found, recurse into subdirectories
+	if currentDepth < maxDepth {
+		for _, entry := range entries {
+			if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
+				subDir := filepath.Join(dir, entry.Name())
+				scanForProjects(subDir, currentDepth+1, maxDepth, projects)
+			}
+		}
+	}
+
+	return nil
+}
+
+// extractProjectInfo extracts project information from a directory containing .phpier.yml
+func extractProjectInfo(projectPath string) (*ProjectInfo, error) {
+	configPath := filepath.Join(projectPath, ".phpier.yml")
+
+	// For now, use directory name as project name
+	// In the future, this could read the actual project name from .phpier.yml labels
+	projectName := filepath.Base(projectPath)
+
+	// Verify the file is readable
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("no .phpier.yml file found in %s", projectPath)
+	}
+
+	return &ProjectInfo{
+		Name: projectName,
+		Path: projectPath,
+	}, nil
+}
+
+// LoadProjectConfigFromPath loads project configuration from a specific path
+func LoadProjectConfigFromPath(projectPath string) (*ProjectConfig, error) {
+	// For now, return a basic config based on directory name
+	// This will be enhanced to read from .phpier.yml labels when that feature is implemented
+	projectName := filepath.Base(projectPath)
+
+	return &ProjectConfig{
+		Name: projectName,
+		PHP:  "8.3", // Default, will be read from docker-compose.yml labels
+		Node: "lts", // Default, will be read from docker-compose.yml labels
+		App: AppConfig{
+			Volumes:     []string{"./:/var/www/html"},
+			Environment: []string{"APP_ENV=local", "APP_DEBUG=true"},
+		},
+	}, nil
 }

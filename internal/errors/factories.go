@@ -188,3 +188,31 @@ func NewInternalError(message string, cause error) *PhpierError {
 		WithSuggestion("This appears to be an internal error").
 		WithSuggestion("Please report this issue with the full error message")
 }
+
+// Project management error factories
+
+// NewProjectNotFoundError creates a project not found error
+func NewProjectNotFoundError(projectName string) *PhpierError {
+	return NewPhpierError(ErrorTypeProjectNotFound, fmt.Sprintf("Project '%s' not found", projectName)).
+		WithContext("project_name", projectName).
+		WithSuggestion("Check if the project exists and is initialized with 'phpier init'").
+		WithSuggestion("Ensure the project name is correct").
+		WithSuggestion("Use 'phpier list' to see available projects")
+}
+
+// NewMultipleProjectsFoundError creates a multiple projects found error
+func NewMultipleProjectsFoundError(projectName string, paths []string) *PhpierError {
+	return NewPhpierError(ErrorTypeMultipleProjects, fmt.Sprintf("Multiple projects named '%s' found", projectName)).
+		WithContext("project_name", projectName).
+		WithContext("paths", paths).
+		WithSuggestion("Specify the full path to the project you want to use").
+		WithSuggestion("Rename one of the projects to avoid conflicts").
+		WithSuggestion("Navigate to the specific project directory and use 'phpier up' without arguments")
+}
+
+// NewProjectDiscoveryFailedError creates a project discovery failed error
+func NewProjectDiscoveryFailedError(cause error) *PhpierError {
+	return WrapError(ErrorTypeProjectDiscoveryFailed, "Failed to discover phpier projects", cause).
+		WithSuggestion("Check file system permissions in your project directories").
+		WithSuggestion("Ensure you have access to the directories being searched")
+}

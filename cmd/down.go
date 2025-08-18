@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"phpier/internal/config"
 	"phpier/internal/docker"
 	"phpier/internal/errors"
@@ -18,7 +19,7 @@ var (
 
 // downCmd represents the down command
 var downCmd = &cobra.Command{
-	Use:   "down",
+	Use:   "down [app]",
 	Short: "Stop and remove project containers and services",
 	Long: `Stop and remove project containers and services. Optionally stop global services.
 
@@ -27,11 +28,14 @@ This command will:
 - Clean up project networks and volumes (non-persistent by default)
 - Preserve persistent data volumes by default (use --remove-volumes to remove all)
 - Optionally stop global services with --stop-global flag
+- Optionally stop a specific project by name from any directory
 
 Examples:
   phpier down                      # Stop project services only
   phpier down --global             # Stop project and global services
-  phpier down --force              # Force remove containers without graceful shutdown`,
+  phpier down --force              # Force remove containers without graceful shutdown
+  phpier down myapp                # Stop 'myapp' project from any directory
+  phpier down myapp --global       # Stop 'myapp' project and global services`,
 	RunE: runDown,
 }
 
@@ -46,20 +50,62 @@ func init() {
 }
 
 func runDown(cmd *cobra.Command, args []string) error {
-	if !isProjectInitialized() {
-		return errors.NewProjectNotInitializedError()
-	}
+	var projectPath string
+	var projectCfg *config.ProjectConfig
+	var err error
 
-	// Load configurations
-	projectCfg, err := config.LoadProjectConfig()
-	if err != nil {
-		return errors.WrapError(errors.ErrorTypeConfigNotFound, "Failed to load project config", err)
+	// Check if app argument is provided
+	if len(args) > 0 {
+		projectName := args[0]
+		logrus.Infof("🔍 Looking for project '%s'...", projectName)
+
+		// Find project by name
+		projectInfo, err := config.FindProjectByName(projectName)
+		if err != nil {
+			return err
+		}
+
+		projectPath = projectInfo.Path
+		logrus.Infof("📂 Found project at: %s", projectPath)
+
+		// Load project config from specific path
+		projectCfg, err = config.LoadProjectConfigFromPath(projectPath)
+		if err != nil {
+			return errors.WrapError(errors.ErrorTypeConfigNotFound, "Failed to load project config", err)
+		}
+	} else {
+		// Use current directory
+		if !isProjectInitialized() {
+			return errors.NewProjectNotInitializedError()
+		}
+
+		// Load configurations from current directory
+		projectCfg, err = config.LoadProjectConfig()
+		if err != nil {
+			return errors.WrapError(errors.ErrorTypeConfigNotFound, "Failed to load project config", err)
+		}
+
+		// Get current working directory
+		projectPath, err = os.Getwd()
+		if err != nil {
+			return errors.WrapError(errors.ErrorTypeFileSystemError, "Failed to get current directory", err)
+		}
 	}
 
 	// Create Docker Compose manager for project
-	composeManager, err := docker.NewProjectComposeManager(projectCfg, nil)
-	if err != nil {
-		return errors.WrapError(errors.ErrorTypeDockerError, "Failed to create Docker client", err)
+	var composeManager *docker.ProjectComposeManager
+	if len(args) > 0 {
+		// Use specific project path
+		composeManager, err = docker.NewProjectComposeManagerWithPath(projectCfg, nil, projectPath)
+		if err != nil {
+			return errors.WrapError(errors.ErrorTypeDockerError, "Failed to create Docker client", err)
+		}
+	} else {
+		// Use current directory
+		composeManager, err = docker.NewProjectComposeManager(projectCfg, nil)
+		if err != nil {
+			return errors.WrapError(errors.ErrorTypeDockerError, "Failed to create Docker client", err)
+		}
 	}
 
 	// Stop project services

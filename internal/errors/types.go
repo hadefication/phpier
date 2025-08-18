@@ -49,6 +49,11 @@ const (
 	// User interaction errors
 	ErrorTypeUserAborted ErrorType = "user_aborted"
 
+	// Project management errors
+	ErrorTypeProjectNotFound        ErrorType = "project_not_found"
+	ErrorTypeMultipleProjects       ErrorType = "multiple_projects_found"
+	ErrorTypeProjectDiscoveryFailed ErrorType = "project_discovery_failed"
+
 	// Internal errors
 	ErrorTypeInternal ErrorType = "internal_error"
 	ErrorTypeUnknown  ErrorType = "unknown_error"

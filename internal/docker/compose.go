@@ -86,6 +86,28 @@ func NewProjectComposeManager(projectCfg *config.ProjectConfig, globalCfg *confi
 	}, nil
 }
 
+// NewProjectComposeManagerWithPath creates a new Docker Compose manager for a project at a specific path.
+func NewProjectComposeManagerWithPath(projectCfg *config.ProjectConfig, globalCfg *config.GlobalConfig, projectPath string) (*ProjectComposeManager, error) {
+	client, err := NewClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the project path contains .phpier.yml
+	configPath := filepath.Join(projectPath, ".phpier.yml")
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("no .phpier.yml found in %s", projectPath)
+	}
+
+	return &ProjectComposeManager{
+		client:     client,
+		projectCfg: projectCfg,
+		globalCfg:  globalCfg,
+		composeCmd: client.GetDockerComposeCommand(),
+		workDir:    projectPath,
+	}, nil
+}
+
 // Up starts the Docker Compose services for a project.
 func (cm *ProjectComposeManager) Up(detached bool) error {
 	if !cm.client.IsDockerRunning() {

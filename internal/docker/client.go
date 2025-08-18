@@ -262,6 +262,14 @@ func (c *Client) ExecInteractive(ctx context.Context, config *ExecConfig) (int, 
 	return 0, nil
 }
 
+// ProjectInfo represents information about a discovered phpier project
+type ProjectInfo struct {
+	Name      string
+	Status    string // "running", "stopped", "created"
+	ImageName string
+	Path      string // Working directory if available
+}
+
 // GetRunningPhpierProjects returns a list of running phpier projects
 func (c *Client) GetRunningPhpierProjects() ([]string, error) {
 	output, err := c.RunCommandOutput("docker", "ps", "--filter", "label=com.docker.compose.project", "--format", "{{.Label \"com.docker.compose.project\"}}")
@@ -286,4 +294,216 @@ func (c *Client) GetRunningPhpierProjects() ([]string, error) {
 	}
 
 	return result, nil
+}
+
+// GetAllPhpierProjects returns all phpier projects (running and stopped)
+func (c *Client) GetAllPhpierProjects() ([]ProjectInfo, error) {
+	// Get all containers (running and stopped) with phpier labels
+	output, err := c.RunCommandOutput("docker", "ps", "-a", 
+		"--filter", "label=com.docker.compose.project",
+		"--filter", "label=phpier.managed=true",
+		"--format", "{{.Label \"com.docker.compose.project\"}}\t{{.Status}}\t{{.Image}}\t{{.Label \"com.docker.compose.working-dir\"}}")
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(output) == "" {
+		return []ProjectInfo{}, nil
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	projectMap := make(map[string]*ProjectInfo)
+
+	for _, line := range lines {
+		parts := strings.Split(strings.TrimSpace(line), "\t")
+		if len(parts) < 3 {
+			continue
+		}
+
+		projectName := strings.TrimSpace(parts[0])
+		status := strings.TrimSpace(parts[1])
+		imageName := strings.TrimSpace(parts[2])
+		workingDir := ""
+		if len(parts) > 3 {
+			workingDir = strings.TrimSpace(parts[3])
+		}
+
+		// Skip global phpier services
+		if projectName == "" || projectName == "phpier" {
+			continue
+		}
+
+		// Determine project status from container status
+		projectStatus := "stopped"
+		if strings.Contains(status, "Up") {
+			projectStatus = "running"
+		} else if strings.Contains(status, "Created") {
+			projectStatus = "created"
+		}
+
+		// Use the first container found for each project or update with running status
+		if existing, exists := projectMap[projectName]; !exists || (existing.Status != "running" && projectStatus == "running") {
+			projectMap[projectName] = &ProjectInfo{
+				Name:      projectName,
+				Status:    projectStatus,
+				ImageName: imageName,
+				Path:      workingDir,
+			}
+		}
+	}
+
+	// Convert map to slice
+	var result []ProjectInfo
+	for _, project := range projectMap {
+		result = append(result, *project)
+	}
+
+	return result, nil
+}
+
+// GetPhpierProjectByName finds a specific phpier project by name using Docker
+func (c *Client) GetPhpierProjectByName(projectName string) (*ProjectInfo, error) {
+	projects, err := c.GetAllPhpierProjects()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, project := range projects {
+		if project.Name == projectName {
+			return &project, nil
+		}
+	}
+
+	return nil, fmt.Errorf("project '%s' not found in Docker containers", projectName)
+}
+
+// GetPhpierImages returns all phpier-built images (prefixed with phpier-)
+func (c *Client) GetPhpierImages() ([]string, error) {
+	output, err := c.RunCommandOutput("docker", "images", 
+		"--filter", "reference=phpier-*",
+		"--format", "{{.Repository}}:{{.Tag}}")
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(output) == "" {
+		return []string{}, nil
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	var result []string
+
+	for _, line := range lines {
+		imageName := strings.TrimSpace(line)
+		if imageName != "" && strings.HasPrefix(imageName, "phpier-") {
+			result = append(result, imageName)
+		}
+	}
+
+	return result, nil
+}
+
+// GetPhpierProjectsFromImages discovers projects by scanning phpier- prefixed Docker images
+func (c *Client) GetPhpierProjectsFromImages() ([]ProjectInfo, error) {
+	// Get all phpier- prefixed images
+	output, err := c.RunCommandOutput("docker", "images", 
+		"--filter", "reference=phpier-*",
+		"--format", "{{.Repository}}:{{.Tag}}")
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(output) == "" {
+		return []ProjectInfo{}, nil
+	}
+
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	projectMap := make(map[string]ProjectInfo)
+
+	for _, line := range lines {
+		imageName := strings.TrimSpace(line)
+		if imageName == "" || !strings.HasPrefix(imageName, "phpier-") {
+			continue
+		}
+
+		// Extract project name from image name (remove phpier- prefix and :tag)
+		projectName := strings.TrimPrefix(imageName, "phpier-")
+		if colonIndex := strings.Index(projectName, ":"); colonIndex != -1 {
+			projectName = projectName[:colonIndex]
+		}
+
+		if projectName == "" {
+			continue
+		}
+
+		// Check if this project has running containers
+		status := "stopped"
+		workingDir := ""
+		
+		// Try to get container info for this project
+		containerOutput, err := c.RunCommandOutput("docker", "ps", "-a",
+			"--filter", fmt.Sprintf("ancestor=%s", imageName),
+			"--format", "{{.Status}}\t{{.Label \"com.docker.compose.working-dir\"}}")
+		
+		if err == nil && strings.TrimSpace(containerOutput) != "" {
+			parts := strings.Split(strings.TrimSpace(containerOutput), "\t")
+			if len(parts) > 0 {
+				containerStatus := strings.TrimSpace(parts[0])
+				if strings.Contains(containerStatus, "Up") {
+					status = "running"
+				} else if strings.Contains(containerStatus, "Created") {
+					status = "created"
+				}
+				
+				if len(parts) > 1 {
+					workingDir = strings.TrimSpace(parts[1])
+				}
+			}
+		}
+
+		projectMap[projectName] = ProjectInfo{
+			Name:      projectName,
+			Status:    status,
+			ImageName: imageName,
+			Path:      workingDir,
+		}
+	}
+
+	// Convert map to slice
+	var result []ProjectInfo
+	for _, project := range projectMap {
+		result = append(result, project)
+	}
+
+	return result, nil
+}
+
+// GetProjectWorkingDirectory attempts to find the working directory for a project
+func (c *Client) GetProjectWorkingDirectory(projectName string) (string, error) {
+	// Try to get working directory from running container
+	output, err := c.RunCommandOutput("docker", "ps", 
+		"--filter", fmt.Sprintf("label=com.docker.compose.project=%s", projectName),
+		"--format", "{{.Label \"com.docker.compose.working-dir\"}}")
+	if err != nil {
+		return "", err
+	}
+
+	if workDir := strings.TrimSpace(output); workDir != "" {
+		return workDir, nil
+	}
+
+	// If not running, try to get from stopped containers
+	output, err = c.RunCommandOutput("docker", "ps", "-a",
+		"--filter", fmt.Sprintf("label=com.docker.compose.project=%s", projectName),
+		"--format", "{{.Label \"com.docker.compose.working-dir\"}}")
+	if err != nil {
+		return "", err
+	}
+
+	workDir := strings.TrimSpace(output)
+	if workDir == "" {
+		return "", fmt.Errorf("working directory not found for project '%s'", projectName)
+	}
+
+	return workDir, nil
 }

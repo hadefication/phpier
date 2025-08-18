@@ -20,19 +20,22 @@ var (
 
 // upCmd represents the up command
 var upCmd = &cobra.Command{
-	Use:   "up",
+	Use:   "up [app]",
 	Short: "Start the project's app container",
 	Long: `Start the project's app container and connect it to the global services.
 
 This command will:
 - Start the PHP/Nginx container for the current project.
 - Ensure the global services network is available.
+- Optionally start a specific project by name from any directory.
 
 Examples:
   phpier up                 # Start app container in the foreground
   phpier up -d              # Start app container in the background (detached)
   phpier up --build         # Rebuild the app container image before starting
-  phpier up --skip-global   # Start only project services, skip global service check`,
+  phpier up --skip-global   # Start only project services, skip global service check
+  phpier up myapp           # Start 'myapp' project from any directory
+  phpier up myapp -d        # Start 'myapp' project in the background`,
 	RunE: runUp,
 }
 
@@ -46,8 +49,46 @@ func init() {
 }
 
 func runUp(cmd *cobra.Command, args []string) error {
-	if !isProjectInitialized() {
-		return errors.NewProjectNotInitializedError()
+	var projectPath string
+	var projectCfg *config.ProjectConfig
+	var err error
+
+	// Check if app argument is provided
+	if len(args) > 0 {
+		projectName := args[0]
+		logrus.Infof("🔍 Looking for project '%s'...", projectName)
+
+		// Find project by name
+		projectInfo, err := config.FindProjectByName(projectName)
+		if err != nil {
+			return err
+		}
+
+		projectPath = projectInfo.Path
+		logrus.Infof("📂 Found project at: %s", projectPath)
+
+		// Load project config from specific path
+		projectCfg, err = config.LoadProjectConfigFromPath(projectPath)
+		if err != nil {
+			return errors.WrapError(errors.ErrorTypeConfigNotFound, "Failed to load project config", err)
+		}
+	} else {
+		// Use current directory
+		if !isProjectInitialized() {
+			return errors.NewProjectNotInitializedError()
+		}
+
+		// Load configurations from current directory
+		projectCfg, err = config.LoadProjectConfig()
+		if err != nil {
+			return errors.WrapError(errors.ErrorTypeConfigNotFound, "Failed to load project config", err)
+		}
+
+		// Get current working directory
+		projectPath, err = os.Getwd()
+		if err != nil {
+			return errors.WrapError(errors.ErrorTypeFileSystemError, "Failed to get current directory", err)
+		}
 	}
 
 	// Set WWWUSER to current user ID if not already set
@@ -55,11 +96,7 @@ func runUp(cmd *cobra.Command, args []string) error {
 		logrus.Warnf("Failed to set WWWUSER: %v", err)
 	}
 
-	// Load configurations
-	projectCfg, err := config.LoadProjectConfig()
-	if err != nil {
-		return errors.WrapError(errors.ErrorTypeConfigNotFound, "Failed to load project config", err)
-	}
+	// Load global configuration
 	globalCfg, err := config.LoadGlobalConfig()
 	if err != nil {
 		return errors.WrapError(errors.ErrorTypeConfigNotFound, "Failed to load global config", err)
@@ -75,9 +112,19 @@ func runUp(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create Docker Compose manager
-	composeManager, err := docker.NewProjectComposeManager(projectCfg, globalCfg)
-	if err != nil {
-		return errors.WrapError(errors.ErrorTypeDockerError, "Failed to create Docker client", err)
+	var composeManager *docker.ProjectComposeManager
+	if len(args) > 0 {
+		// Use specific project path
+		composeManager, err = docker.NewProjectComposeManagerWithPath(projectCfg, globalCfg, projectPath)
+		if err != nil {
+			return errors.WrapError(errors.ErrorTypeDockerError, "Failed to create Docker client", err)
+		}
+	} else {
+		// Use current directory
+		composeManager, err = docker.NewProjectComposeManager(projectCfg, globalCfg)
+		if err != nil {
+			return errors.WrapError(errors.ErrorTypeDockerError, "Failed to create Docker client", err)
+		}
 	}
 
 	// Build image if requested
