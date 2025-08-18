@@ -66,12 +66,12 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Combine and deduplicate projects
 	allProjects := make(map[string]config.ProjectInfo)
-	
+
 	// Add Docker projects
 	for _, project := range dockerProjects {
 		allProjects[project.Name] = project
 	}
-	
+
 	// Add filesystem projects (Docker takes precedence)
 	for _, project := range filesystemProjects {
 		if existing, exists := allProjects[project.Name]; !exists || existing.Path == "" {
@@ -90,7 +90,7 @@ func runList(cmd *cobra.Command, args []string) error {
 	// Display results
 	if showAll {
 		fmt.Printf("Found %d phpier project(s):\n\n", len(allProjects))
-		
+
 		if showDockerProjects && len(dockerProjects) > 0 {
 			fmt.Println("🐳 Docker Projects:")
 			for _, project := range dockerProjects {
@@ -98,7 +98,7 @@ func runList(cmd *cobra.Command, args []string) error {
 			}
 			fmt.Println()
 		}
-		
+
 		if showFilesystemProjects && len(filesystemProjects) > 0 {
 			fmt.Println("📁 Filesystem Projects:")
 			for _, project := range filesystemProjects {

@@ -141,3 +141,12 @@ func SetVersionInfo(version, commit, date string) {
 	buildCommit = commit
 	buildDate = date
 }
+
+// isPhpierProject checks if the current directory contains a phpier project
+func isPhpierProject() bool {
+	if _, err := os.Stat(".phpier.yml"); os.IsNotExist(err) {
+		return false
+	}
+	// TODO: Also check if .phpier.yml contains phpier.managed=true label
+	return true
+}

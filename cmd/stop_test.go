@@ -26,8 +26,9 @@ func TestStopCommandFlags(t *testing.T) {
 
 func TestStopCommandDescription(t *testing.T) {
 	assert.Equal(t, "stop", stopCmd.Use)
-	assert.Equal(t, "Stop project containers and global services (shortcut for 'down --global')", stopCmd.Short)
-	assert.Contains(t, stopCmd.Long, "Stop and remove project containers and services, then stop global services")
-	assert.Contains(t, stopCmd.Long, "shortcut for 'phpier down --global'")
-	assert.Contains(t, stopCmd.Long, "phpier stop")
+	assert.Equal(t, "Stop services (global only if not in project, project + global if in project)", stopCmd.Short)
+	assert.Contains(t, stopCmd.Long, "Stop services based on current directory context")
+	assert.Contains(t, stopCmd.Long, "When run outside a phpier project directory")
+	assert.Contains(t, stopCmd.Long, "When run inside a phpier project directory")
+	assert.Contains(t, stopCmd.Long, "Context-aware service stopping")
 }

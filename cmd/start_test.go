@@ -26,8 +26,9 @@ func TestStartCommandFlags(t *testing.T) {
 
 func TestStartCommandDescription(t *testing.T) {
 	assert.Equal(t, "start", startCmd.Use)
-	assert.Equal(t, "Start global services and project container (shortcut for 'up')", startCmd.Short)
-	assert.Contains(t, startCmd.Long, "Start the global services and project container")
-	assert.Contains(t, startCmd.Long, "shortcut for 'phpier up'")
-	assert.Contains(t, startCmd.Long, "phpier start")
+	assert.Equal(t, "Start services (global only if not in project, global + project if in project)", startCmd.Short)
+	assert.Contains(t, startCmd.Long, "Start services based on current directory context")
+	assert.Contains(t, startCmd.Long, "When run outside a phpier project directory")
+	assert.Contains(t, startCmd.Long, "When run inside a phpier project directory")
+	assert.Contains(t, startCmd.Long, "Context-aware service startup")
 }
