@@ -148,4 +148,3 @@ func isProjectInitialized() bool {
 	// TODO: Also check if .phpier.yml contains phpier.managed=true label
 	return true
 }
-

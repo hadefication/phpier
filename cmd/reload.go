@@ -102,12 +102,12 @@ func runReload(cmd *cobra.Command, args []string) error {
 
 	// Perform reload operation
 	reloadOptions := docker.ReloadOptions{
-		Detached:  reloadDetached,
-		Build:     reloadBuild,
-		Force:     reloadForce,
-		Timeout:   reloadTimeout,
-		Pull:      reloadPull,
-		NoCache:   reloadNoCache,
+		Detached: reloadDetached,
+		Build:    reloadBuild,
+		Force:    reloadForce,
+		Timeout:  reloadTimeout,
+		Pull:     reloadPull,
+		NoCache:  reloadNoCache,
 	}
 
 	logrus.Infof("🔄 Reloading project services...")
@@ -122,4 +122,3 @@ func runReload(cmd *cobra.Command, args []string) error {
 
 	return nil
 }
-

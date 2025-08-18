@@ -35,6 +35,7 @@ type ComposeManager interface {
 	DownWithOptions(options DownOptions) error
 	Build(noCache bool, services ...string) error
 	Reload(options ReloadOptions) error
+	Logs(service string, follow bool, tail int, since string) error
 }
 
 // GlobalServiceChecker interface for checking global service status.
@@ -156,7 +157,7 @@ func (cm *ProjectComposeManager) Reload(options ReloadOptions) error {
 	// Step 2: Build if requested
 	if options.Build {
 		logrus.Infof("🔨 Building project image...")
-		
+
 		// Pull latest images if requested
 		if options.Pull {
 			logrus.Infof("📥 Pulling latest base images...")
@@ -165,7 +166,7 @@ func (cm *ProjectComposeManager) Reload(options ReloadOptions) error {
 				return fmt.Errorf("failed to pull images: %w", err)
 			}
 		}
-		
+
 		// Build with options
 		if err := cm.Build(options.NoCache, "app"); err != nil {
 			return fmt.Errorf("failed to build project image: %w", err)
@@ -179,6 +180,37 @@ func (cm *ProjectComposeManager) Reload(options ReloadOptions) error {
 	}
 
 	return nil
+}
+
+// Logs displays logs from the Docker Compose services for a project.
+func (cm *ProjectComposeManager) Logs(service string, follow bool, tail int, since string) error {
+	if !cm.client.IsDockerRunning() {
+		return fmt.Errorf("Docker daemon is not running. Please start Docker")
+	}
+
+	args := cm.buildComposeArgs("logs")
+
+	// Add follow flag
+	if follow {
+		args = append(args, "-f")
+	}
+
+	// Add tail flag
+	if tail > 0 {
+		args = append(args, "--tail", fmt.Sprintf("%d", tail))
+	}
+
+	// Add since flag
+	if since != "" {
+		args = append(args, "--since", since)
+	}
+
+	// Add service if specified
+	if service != "" {
+		args = append(args, service)
+	}
+
+	return cm.runComposeCommand(args...)
 }
 
 // buildComposeArgs builds the base arguments for project docker-compose commands.
@@ -291,6 +323,37 @@ func (gcm *GlobalComposeManager) Build(noCache bool, services ...string) error {
 // Reload is not supported for global services - use 'phpier global down' and 'phpier global up' instead.
 func (gcm *GlobalComposeManager) Reload(options ReloadOptions) error {
 	return fmt.Errorf("reload is not supported for global services - use 'phpier global down' and 'phpier global up' instead")
+}
+
+// Logs displays logs from the Docker Compose services for the global stack.
+func (gcm *GlobalComposeManager) Logs(service string, follow bool, tail int, since string) error {
+	if !gcm.client.IsDockerRunning() {
+		return fmt.Errorf("Docker daemon is not running. Please start Docker")
+	}
+
+	args := gcm.buildComposeArgs("logs")
+
+	// Add follow flag
+	if follow {
+		args = append(args, "-f")
+	}
+
+	// Add tail flag
+	if tail > 0 {
+		args = append(args, "--tail", fmt.Sprintf("%d", tail))
+	}
+
+	// Add since flag
+	if since != "" {
+		args = append(args, "--since", since)
+	}
+
+	// Add service if specified
+	if service != "" {
+		args = append(args, service)
+	}
+
+	return gcm.runComposeCommand(args...)
 }
 
 // buildComposeArgs builds the base arguments for global docker-compose commands.

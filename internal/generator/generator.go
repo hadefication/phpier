@@ -177,7 +177,6 @@ func CreateProjectDirectories() error {
 		return fmt.Errorf("failed to create logs .gitignore: %w", err)
 	}
 
-
 	// Create entrypoint script for permission mapping
 	entrypointScript := `#!/usr/bin/env bash
 
