@@ -54,6 +54,10 @@ const (
 	ErrorTypeMultipleProjects       ErrorType = "multiple_projects_found"
 	ErrorTypeProjectDiscoveryFailed ErrorType = "project_discovery_failed"
 
+	// Update errors
+	ErrorTypeUpdateFailed    ErrorType = "update_failed"
+	ErrorTypeUpdateCheckFailed ErrorType = "update_check_failed"
+
 	// Internal errors
 	ErrorTypeInternal ErrorType = "internal_error"
 	ErrorTypeUnknown  ErrorType = "unknown_error"

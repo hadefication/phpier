@@ -216,3 +216,28 @@ func NewProjectDiscoveryFailedError(cause error) *PhpierError {
 		WithSuggestion("Check file system permissions in your project directories").
 		WithSuggestion("Ensure you have access to the directories being searched")
 }
+
+// Update-related error factories
+
+// NewUpdateError creates an update failed error
+func NewUpdateError(message string, details string) *PhpierError {
+	return NewPhpierError(ErrorTypeUpdateFailed, message).
+		WithContext("details", details).
+		WithSuggestion("Check your internet connection").
+		WithSuggestion("Try running the update command again").
+		WithSuggestion("Visit the phpier releases page: https://github.com/hadefication/phpier/releases")
+}
+
+// NewUpdateCheckError creates an update check failed error
+func NewUpdateCheckError(cause error) *PhpierError {
+	return WrapError(ErrorTypeUpdateCheckFailed, "Failed to check for updates", cause).
+		WithSuggestion("Check your internet connection").
+		WithSuggestion("GitHub API might be temporarily unavailable - try again later").
+		WithSuggestion("You can manually check for updates at: https://github.com/hadefication/phpier/releases")
+}
+
+// NewUserError creates a user input error
+func NewUserError(message string, suggestion string) *PhpierError {
+	return NewPhpierError(ErrorTypeInvalidArguments, message).
+		WithSuggestion(suggestion)
+}
