@@ -51,15 +51,13 @@ jobs:
         mkdir -p dist
         
         # Build for multiple platforms
-        platforms=("linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64" "windows/amd64")
+        platforms=("linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64")
         
         for platform in "${platforms[@]}"; do
           IFS='/' read -r os arch <<< "$platform"
           output_name="phpier-${os}-${arch}"
           
-          if [ "$os" = "windows" ]; then
-            output_name="${output_name}.exe"
-          fi
+          # Note: No Windows .exe needed since we only support WSL
           
           echo "Building ${output_name}..."
           GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build \
@@ -99,7 +97,7 @@ jobs:
         - **Linux (ARM64)**: `phpier-linux-arm64` 
         - **macOS (Intel)**: `phpier-darwin-amd64`
         - **macOS (Apple Silicon)**: `phpier-darwin-arm64`
-        - **Windows (x64)**: `phpier-windows-amd64.exe`
+        - **Windows WSL**: Use Linux binary `phpier-linux-amd64` in WSL
         
         ### Build from Source
         ```bash

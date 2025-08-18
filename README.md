@@ -15,14 +15,39 @@ A powerful CLI tool for managing PHP development environments using Docker. Like
 
 ## 📋 Installation
 
-See [INSTALLATION.md](INSTALLATION.md) for detailed installation instructions.
+### One-Line Install (Recommended)
 
-**Quick install:**
 ```bash
-git clone <repository-url>
+curl -sSL https://raw.githubusercontent.com/hadefication/phpier/main/scripts/install.sh | bash
+```
+
+### Alternative Installation Methods
+
+**Specific Version:**
+```bash
+curl -sSL https://raw.githubusercontent.com/hadefication/phpier/main/scripts/install.sh | bash -s -- -v v1.0.0
+```
+
+**Custom Directory:**
+```bash
+curl -sSL https://raw.githubusercontent.com/hadefication/phpier/main/scripts/install.sh | bash -s -- -d /usr/local/bin
+```
+
+**Build from Source:**
+```bash
+git clone https://github.com/hadefication/phpier.git
 cd phpier
 ./scripts/local-install.sh
 ```
+
+### Platform Support
+- ✅ **Linux** (AMD64, ARM64) - Ubuntu, CentOS, Debian, etc.
+- ✅ **macOS** (Intel, Apple Silicon) - macOS 10.15+
+- ✅ **Windows WSL** (Ubuntu, Debian) - WSL 2 recommended
+
+> **Note:** Native Windows is not supported. Use WSL (Windows Subsystem for Linux) for Windows development.
+
+See [INSTALLATION.md](INSTALLATION.md) for detailed installation instructions and troubleshooting.
 
 ## 🏗️ How It Works
 
