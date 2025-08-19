@@ -134,6 +134,32 @@ phpier init --project-name=myapp  # Custom project name
 phpier init 7.4 --project-name=legacy  # Version + custom name
 ```
 
+**File Structure After Init:**
+
+```
+my-project/
+├── .phpier.yml                    # Project configuration (PHP version, settings)
+├── .phpier/                       # PHPier-generated files directory
+│   ├── docker-compose.yml         # Project container orchestration
+│   ├── Dockerfile.php             # Custom PHP container with your version
+│   └── docker/                    # Container configuration files
+│       ├── nginx/                 # Nginx web server config
+│       │   └── default.conf       # Site configuration
+│       ├── php/                   # PHP runtime configuration
+│       │   └── php.ini            # PHP settings (memory, upload limits, etc.)
+│       └── supervisor/            # Process management
+│           └── supervisord.conf   # PHP-FPM and service supervision
+└── public/                        # Web root directory (auto-created)
+    └── index.php                  # Default PHP info page
+```
+
+**Key Files:**
+- **`.phpier.yml`**: Project configuration including PHP version, database settings, and container options
+- **`.phpier/docker-compose.yml`**: Defines your project's app container and connects to global services
+- **`.phpier/Dockerfile.php`**: Custom PHP container built with your chosen version and extensions  
+- **`.phpier/docker/`**: All container configuration files (Nginx, PHP, Supervisor)
+- **`public/index.php`**: Default landing page showing PHP info and environment details
+
 #### Project Information
 ```bash
 phpier list                  # List all discovered phpier projects
