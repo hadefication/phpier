@@ -26,6 +26,7 @@ This command will:
 - Remove the phpier binary from common installation paths
 - Clean up phpier configuration files and data directories
 - Stop and remove phpier Docker containers and networks
+- Remove built phpier project images (phpier-* images)
 - Preserve Docker volumes for data safety
 
 Examples:

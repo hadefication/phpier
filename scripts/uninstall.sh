@@ -279,6 +279,23 @@ cleanup_phpier_docker() {
         log "No phpier networks found"
     fi
     
+    # Remove phpier images (built project images)
+    local images
+    images=$(docker images --filter "reference=phpier-*" -q 2>/dev/null || true)
+    
+    if [[ -n "$images" ]]; then
+        if [[ "$dry_run" == "true" ]]; then
+            log "Would remove phpier project images:"
+            docker images --filter "reference=phpier-*" --format "  - {{.Repository}}:{{.Tag}} ({{.Size}})" 2>/dev/null || true
+        else
+            log "Removing phpier project images..."
+            echo "$images" | xargs docker rmi -f &>/dev/null || true
+            success "Removed phpier project images"
+        fi
+    else
+        log "No phpier project images found"
+    fi
+    
     # Note about preserved volumes
     local volumes
     volumes=$(docker volume ls --filter "name=phpier" -q 2>/dev/null || true)
