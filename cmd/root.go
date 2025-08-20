@@ -16,7 +16,7 @@ var (
 	verbose bool
 
 	// Version information
-	buildVersion = "v1.0.6"
+	buildVersion = "v1.0.7"
 	buildCommit  = "unknown"
 	buildDate    = "unknown"
 )
