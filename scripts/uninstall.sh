@@ -228,6 +228,72 @@ cleanup_phpier_data() {
     fi
 }
 
+cleanup_phpier_docker() {
+    local dry_run="$1"
+    
+    log "Checking for phpier Docker containers..."
+    
+    # Check if Docker is running
+    if ! command -v docker &> /dev/null; then
+        log "Docker not found, skipping Docker cleanup"
+        return 0
+    fi
+    
+    if ! docker info &> /dev/null; then
+        warn "Docker daemon not running, skipping Docker cleanup"
+        return 0
+    fi
+    
+    # Stop and remove phpier containers
+    local containers
+    containers=$(docker ps -aq --filter "name=phpier" 2>/dev/null || true)
+    
+    if [[ -n "$containers" ]]; then
+        if [[ "$dry_run" == "true" ]]; then
+            log "Would stop and remove phpier containers:"
+            docker ps -a --filter "name=phpier" --format "  - {{.Names}} ({{.Status}})" 2>/dev/null || true
+        else
+            log "Stopping and removing phpier containers..."
+            echo "$containers" | xargs docker stop &>/dev/null || true
+            echo "$containers" | xargs docker rm &>/dev/null || true
+            success "Removed phpier containers"
+        fi
+    else
+        log "No phpier containers found"
+    fi
+    
+    # Remove phpier networks
+    local networks
+    networks=$(docker network ls --filter "name=phpier" -q 2>/dev/null || true)
+    
+    if [[ -n "$networks" ]]; then
+        if [[ "$dry_run" == "true" ]]; then
+            log "Would remove phpier networks:"
+            docker network ls --filter "name=phpier" --format "  - {{.Name}}" 2>/dev/null || true
+        else
+            log "Removing phpier networks..."
+            echo "$networks" | xargs docker network rm &>/dev/null || true
+            success "Removed phpier networks"
+        fi
+    else
+        log "No phpier networks found"
+    fi
+    
+    # Note about preserved volumes
+    local volumes
+    volumes=$(docker volume ls --filter "name=phpier" -q 2>/dev/null || true)
+    
+    if [[ -n "$volumes" ]]; then
+        log "Preserving phpier Docker volumes for fresh installation testing:"
+        docker volume ls --filter "name=phpier" --format "  - {{.Name}}" 2>/dev/null || true
+        echo
+        warn "Docker volumes are preserved. To remove them manually if needed:"
+        echo "  docker volume rm \$(docker volume ls --filter \"name=phpier\" -q)"
+    else
+        log "No phpier Docker volumes found"
+    fi
+}
+
 show_summary() {
     local removed_count="$1"
     local dry_run="$2"
@@ -385,6 +451,9 @@ main() {
     
     # Clean up data directories
     cleanup_phpier_data "$DRY_RUN"
+    
+    # Clean up Docker containers and networks (but preserve volumes)
+    cleanup_phpier_docker "$DRY_RUN"
     
     # Show summary
     show_summary "$removed_count" "$DRY_RUN"
