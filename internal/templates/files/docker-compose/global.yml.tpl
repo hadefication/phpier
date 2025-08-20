@@ -1,4 +1,4 @@
-name: phpier
+version: '3.8'
 
 services:
   traefik:
